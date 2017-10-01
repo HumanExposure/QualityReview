@@ -164,7 +164,7 @@ chemp <- read.chem.props(cf$chem.file,cf$chem.list)
 
 puc <- read.puc.types(cf$puc.type.file,cf$puc.list)
 
-#print ("0000000000000000000000")
+#print ("00000000000000000000000")
 
 #print (puc$)
 
