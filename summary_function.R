@@ -161,7 +161,7 @@ read.diary = function(diary.prefix,run.name,house.num,persons) {
   if (is.null(diary.prefix)) diary.prefix <- g$diary.prefix
   if (is.null(run.name))         run.name <- g$run.name
   format <- c("Clusters"="Character","Appliances"="Character","Impacted_by"="character")
-  diary <- fread(paste0("output/ABM/", diary.prefix, house.num, ".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"),colClasses=format)
+  diary <- fread(paste0("input/abm/", diary.prefix, house.num, ".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"),colClasses=format)
   setnames(diary,tolower(names(diary)))
   if(exists("person_household_index",diary))              setnames(diary,"person_household_index","p")
   if(exists("day_of_the_year",diary))                     setnames(diary,"day_of_the_year","daynum")
@@ -240,16 +240,50 @@ vent <- read.vent.file(cf$vent.file)
 
 chemp <- read.chem.props(cf$chem.file,cf$chem.list)
 
-
-person.data    <- pop[cf$first.house:cf$last.house]
-
-pp <- list.persons(person.data)
-
 puc <- read.puc.types(cf$puc.type.file,cf$puc.list)
 
 
-max_age <- 0
-min_age <- 0
+
+
+#person.data    <- pop[(cf$first.house-1):(cf$last.house-1)]
+non_PUC <- 0
+
+for (hn in (cf$first.house):(cf$last.house)){
+  pd <- person.data[person.data$house==hn-1]
+  pp <- list.persons(pd)
+  print(pp$age)
+  abm <- read.diary(cf$diary.prefix,cf$run.name,hn,pp)
+  if ((abm$source.id %in% cf$puc.list)==FALSE){
+    non_PUC= non_PUC+1 # no of households that are non-users of the PUCs in model run
+  }
+}
+print(non_PUC)
+
+
+
+if ('Male' %in% person.data$gender && 'Female' %in% person.data$gender){
+  G = "M and F"
+}else if ('Male' %in% person.data$gender){
+  G= "M only"
+}else if ('Female' %in% person.data$gender){
+  G= "F only"
+}
+
+max_age <- max(person.data$age_years)#max age of primary person
+min_age <- min(person.data$age_years)#min age of primary person
+  
+  
+#for (hn in person.data$gender){
+    
+ # }
+#print (person.data$compid)
+#pp <- list.persons(person.data$)
+
+#print (pp$pnum)
+
+
+
+
 
 #for (hn in cf$first.house:cf$last.house){
 #  D <- read.diary(cf$diary.prefix,cf$run.name,hn,)
@@ -272,15 +306,15 @@ sexStr <- paste(unlist(sexStr),collapse = '')
 
 #sheet 1
 
-annual.info <- data.table(unlist(cf$chem.list),unlist(cf$puc.list),cf$last.house-cf$first.house+1,min(vent$minage),max(vent$maxage),max(vent$maxage)-min(vent$minage),sexStr,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
+annual.info <- data.table(unlist(cf$chem.list),non_PUC,unlist(cf$puc.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
 annual.tab <- transpose(annual.info)
-row.names(annual.tab) <- c("dtxsid","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name")
+row.names(annual.tab) <- c("dtxsid","# non PUC","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name")
 
 write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet1",row.names=TRUE, col.names = FALSE)
 
 #sheet 2
-annual.info2 <- data.table(unlist(cf$chem.list),unlist(cf$puc.list),cf$last.house-cf$first.house+1,min(vent$minage),max(vent$maxage),max(vent$maxage)-min(vent$minage),sexStr,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
-setnames(annual.info2,c("dtxsid","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name"))
+annual.info2 <- data.table(unlist(cf$chem.list),non_PUC,unlist(cf$puc.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
+setnames(annual.info2,c("dtxsid","non PUC","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name"))
 
 write.xlsx((annual.info2),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet2",append = TRUE,row.names = FALSE)
 
