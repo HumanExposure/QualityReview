@@ -247,18 +247,39 @@ puc <- read.puc.types(cf$puc.type.file,cf$puc.list)
 
 #person.data    <- pop[(cf$first.house-1):(cf$last.house-1)]
 non_PUC <- 0
-
+notP_O <- 0 
+p_used <- 0
+o_used <- 0
 for (hn in (cf$first.house):(cf$last.house)){
   pd <- person.data[person.data$house==hn-1]
   pp <- list.persons(pd)
   print(pp$age)
+  
   abm <- read.diary(cf$diary.prefix,cf$run.name,hn,pp)
-  if ((abm$source.id %in% cf$puc.list)==FALSE){
+  #print(abm[3,])
+  for (n in cf$puc.list){
+    #print (n)
+  if ((n%in%abm$source.id)==FALSE){
     non_PUC= non_PUC+1 # no of households that are non-users of the PUCs in model run
   }
+  }
+  p_age <- (pop$age_years[hn-1]) #the age of the primary at this household
+  
+  for (q in 1:nrow(abm)){
+    if ((abm$age[q]==p_age) && (abm$source.id[q] %in% cf$puc.list)){#correct order of in statement
+      p_used <- 1
+    }else if ((abm$age[q]!=p_age) && (abm$source.id[q] %in% cf$puc.list)){
+      o_used <- 1
+    }
+    
+  }
+  if ((p_used==0)&&o_used==1){
+    notP_O <- notP_O+1
+  }
+  
 }
-print(non_PUC)
-
+  print (notP_O)
+  print (non_PUC)
 
 
 if ('Male' %in% person.data$gender && 'Female' %in% person.data$gender){
@@ -273,26 +294,7 @@ max_age <- max(person.data$age_years)#max age of primary person
 min_age <- min(person.data$age_years)#min age of primary person
   
   
-#for (hn in person.data$gender){
-    
- # }
-#print (person.data$compid)
-#pp <- list.persons(person.data$)
 
-#print (pp$pnum)
-
-
-
-
-
-#for (hn in cf$first.house:cf$last.house){
-#  D <- read.diary(cf$diary.prefix,cf$run.name,hn,)
-#}
-  
-
-#print ("00000000000000000000000")
-
-#print (puc$)
 
 ##don't delete double hash
 print("---------------------------------")
@@ -306,15 +308,15 @@ sexStr <- paste(unlist(sexStr),collapse = '')
  
 #sheet 1
 
-annual.info <- data.table(unlist(cf$chem.list),non_PUC,unlist(cf$puc.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
+annual.info <- data.table(unlist(cf$chem.list),non_PUC,notP_O,unlist(cf$puc.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
 annual.tab <- transpose(annual.info)
-row.names(annual.tab) <- c("dtxsid","# non PUC","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name")
+row.names(annual.tab) <- c("dtxsid","# non PUC","not p but O","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name")
 
 write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet1",row.names=TRUE, col.names = FALSE)
 
 #sheet 2
-annual.info2 <- data.table(unlist(cf$chem.list),non_PUC,unlist(cf$puc.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
-setnames(annual.info2,c("dtxsid","non PUC","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name"))
+annual.info2 <- data.table(unlist(cf$chem.list),non_PUC,notP_O,unlist(cf$puc.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
+setnames(annual.info2,c("dtxsid","non PUC","not p but o","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name"))
 
 write.xlsx((annual.info2),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet2",append = TRUE,row.names = FALSE)
 
