@@ -10,6 +10,8 @@ library(bit64)
 library(foreach)
 library(doParallel)
 library(reshape2)
+library(xlsx)
+
 
 wd <- "C:/Users/39492/Desktop/HEM S2D R"
 setwd(wd)
@@ -178,9 +180,13 @@ sexStr <- append(sexStr,v[1])
 sexStr <- append(sexStr,v[num])
 sexStr <- paste(unlist(sexStr),collapse = '')
 
-annual.info <- data.table(rep(10,1),unlist(cf$chem.list),unlist(cf$puc.list),cf$last.house-cf$first.house+1,min(vent$minage),max(vent$maxage),max(vent$maxage)-min(vent$minage),sexStr,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type)
-setnames(annual.info,c("household","dtxsid","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name"))
-write.csv(annual.info,file="C:/Users/39492/Desktop/HEM S2D R/sum.csv",row.names=FALSE)
+annual.info <- data.table(unlist(cf$chem.list),unlist(cf$puc.list),cf$last.house-cf$first.house+1,min(vent$minage),max(vent$maxage),max(vent$maxage)-min(vent$minage),sexStr,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
+annual.tab <- transpose(annual.info)
+row.names(annual.tab) <- c("dtxsid","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name")
 
+
+write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet1",row.names=TRUE, col.names = FALSE)
+write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet2",row.names=TRUE, col.names = FALSE,append = TRUE)
+write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet3",row.names=TRUE, col.names = FALSE,append = TRUE)
 
 
