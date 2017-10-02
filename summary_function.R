@@ -155,8 +155,84 @@ read.puc.types = function(puc.type.file,puc.list) {
 }
 
 
+# read.diary loads the product-use diary for one household
+
+read.diary = function(diary.prefix,run.name,house.num,persons) {
+  if (is.null(diary.prefix)) diary.prefix <- g$diary.prefix
+  if (is.null(run.name))         run.name <- g$run.name
+  format <- c("Clusters"="Character","Appliances"="Character","Impacted_by"="character")
+  diary <- fread(paste0("output/ABM/", diary.prefix, house.num, ".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"),colClasses=format)
+  setnames(diary,tolower(names(diary)))
+  if(exists("person_household_index",diary))              setnames(diary,"person_household_index","p")
+  if(exists("day_of_the_year",diary))                     setnames(diary,"day_of_the_year","daynum")
+  if(exists("sheds_id",diary))                            setnames(diary,"sheds_id","source.id")
+  if(exists("start_time_hr_using_military_time",diary))   setnames(diary,"start_time_hr_using_military_time","start")
+  if(exists("duration_min",diary))                        setnames(diary,"duration_min","hand.dur")
+  if(exists("household_index",diary))                     setnames(diary,"household_index","house.num")
+  if(exists("person_gender",diary))                       setnames(diary,"person_gender","sex")
+  if(exists("person_age",diary))                          setnames(diary,"person_age","age")
+  if(exists("primary_person",diary))                      setnames(diary,"primary_person","primary")
+  primenum <- persons$pnum[persons$primary==1]
+  diary$person[diary$primary==1] <- primenum
+  diary$person[diary$primary==0 & diary$p<=primenum] <- diary$p[diary$primary==0 & diary$p<=primenum]-1
+  diary$person[diary$primary==0 & diary$p >primenum] <- diary$p[diary$primary==0 & diary$p >primenum]           
+  diary$mass[is.na(diary$mass)] <- 0
+  diary$source.id[is.na(diary$source.id)] <- "none"
+  diary$mass[diary$source.id=="none"]     <- 0
+  diary$hand.dur[diary$source.id=="none"] <- 0
+  diary$product_type[diary$source.id=="none"] <- "none"
+  diary$indoor_outdoor[diary$source.id=="none"] <- "I"
+  diary$hour           <- 0
+  diary$hour <- 1 + floor(diary$start)
+  diary$hournum  <- 24*(diary$daynum-1) + diary$hour
+  setorder(diary,person,hournum,start)
+  diary$row <- 1:nrow(diary)
+  return(diary)
+}
+
+# list.persons details all the persons in this household 
+
+list.persons = function(ph) {
+  gens  <- vector("character",20)
+  ages  <- vector("integer",20)
+  prime <- rep(0,20)
+  pset  <- 0
+  pg   <- substr(ph$gender,1,1)
+  pa   <- ph$age_years
+  for (p in 1:20) {
+    gens[p] <- substr(ph$genders,p,p)
+    if(gens[p]==".") break
+    ages[p] <- as.integer(substr(ph$ages,2*p-1,2*p))
+    if(gens[p]==pg & ages[p]==pa & pset==0) {
+      prime[p] <- 1
+      pset     <- 1
+    }  
+  }
+  np      <- p-1
+  persons <- as.data.table(data.frame(1:np,gens[1:np],ages[1:np],prime[1:np]))
+  setnames(persons,c("pnum","sex","age","primary"))
+  persons$basal.vent[persons$primary==1] <- ph$basal.vent
+  persons$skin.area[persons$primary==1]  <- ph$BSA_adj
+  if(pset==0) cat("\n  Primary person not identified in this house") 
+  return(persons)
+}
 
 
+# read.pophouse reads the output from the HEM RPGen module 
+
+
+read.pophouse = function(run.name) {
+  if (cf$prog=="y") cat("\n  Reading pophouse...")
+  if (is.null(run.name)) run.name <- cf$run.name
+  pophouse <- fread(paste0("input/pophouse.csv"))
+  if (!exists("basa.vent",pophouse)) pophouse$basal.vent <- 5+0.5*pmin(14,floor(pophouse$age_years/2))
+  pophouse$unitsf[pophouse$unitsf<0] <- 1500
+  pophouse$house <- 1:nrow(pophouse)
+  return(pophouse)
+}
+
+
+pop <- read.pophouse(cf$run.name)
 
 cf <- read.control.file(control.file)
 
@@ -164,7 +240,21 @@ vent <- read.vent.file(cf$vent.file)
 
 chemp <- read.chem.props(cf$chem.file,cf$chem.list)
 
+
+person.data    <- pop[cf$first.house:cf$last.house]
+
+pp <- list.persons(person.data)
+
 puc <- read.puc.types(cf$puc.type.file,cf$puc.list)
+
+
+max_age <- 0
+min_age <- 0
+
+#for (hn in cf$first.house:cf$last.house){
+#  D <- read.diary(cf$diary.prefix,cf$run.name,hn,)
+#}
+  
 
 #print ("00000000000000000000000")
 
@@ -180,13 +270,24 @@ sexStr <- append(sexStr,v[1])
 sexStr <- append(sexStr,v[num])
 sexStr <- paste(unlist(sexStr),collapse = '')
 
+#sheet 1
+
 annual.info <- data.table(unlist(cf$chem.list),unlist(cf$puc.list),cf$last.house-cf$first.house+1,min(vent$minage),max(vent$maxage),max(vent$maxage)-min(vent$minage),sexStr,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
 annual.tab <- transpose(annual.info)
 row.names(annual.tab) <- c("dtxsid","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name")
 
-
 write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet1",row.names=TRUE, col.names = FALSE)
-write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet2",row.names=TRUE, col.names = FALSE,append = TRUE)
+
+#sheet 2
+annual.info2 <- data.table(unlist(cf$chem.list),unlist(cf$puc.list),cf$last.house-cf$first.house+1,min(vent$minage),max(vent$maxage),max(vent$maxage)-min(vent$minage),sexStr,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
+setnames(annual.info2,c("dtxsid","PUC","#households","min_age","max_age","max_age-min_age","genders","Kp","chemicals","CASRN","code","product_name"))
+
+write.xlsx((annual.info2),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet2",append = TRUE,row.names = FALSE)
+
+#sheet 3
+
 write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet3",row.names=TRUE, col.names = FALSE,append = TRUE)
+
+
 
 
