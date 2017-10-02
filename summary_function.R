@@ -303,7 +303,7 @@ sexStr <- vector()
 sexStr <- append(sexStr,v[1])
 sexStr <- append(sexStr,v[num])
 sexStr <- paste(unlist(sexStr),collapse = '')
-
+ 
 #sheet 1
 
 annual.info <- data.table(unlist(cf$chem.list),non_PUC,unlist(cf$puc.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
