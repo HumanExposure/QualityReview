@@ -45,7 +45,7 @@ read.control.file = function(control.file) {
   puc.seed       <- x$setting[x$key=="puc.seed"]
   chem.seed      <- x$setting[x$key=="chem.seed"]
   init.seed      <- x$setting[x$key=="init.seed"]
-  sum.type       <- x$setting[x$key=="sum.type"]
+  hab.prac       <- x$setting[x$key=="hab.prac"]
   if (length(init.seed)>0) { 
     house.seed   <- init.seed
     puc.seed     <- init.seed
@@ -78,10 +78,10 @@ read.control.file = function(control.file) {
   save.r.objects    <- substr(x$setting[x$key=="save.r.objects"],1,1)
   if (length(save.r.objects)==0) save.r.objects <- "n"  # default is not to save
   out <- paste0("output/S2D/",run.name)
-  g <- as.data.table(list(chem.list,sum.type,puc.list,fug.file,chem.file,chem.frac.file,puc.type.file,compart.file,puc.met.file,
+  g <- as.data.table(list(chem.list,hab.prac,puc.list,fug.file,chem.file,chem.frac.file,puc.type.file,compart.file,puc.met.file,
                           skin.area.file,removal.file,vent.file,diary.prefix,run.name,n.houses,init.seed,prog,parallel,
                           puc.offset,first.house,last.house,comp.method,save.r.objects,house.seed,puc.seed,chem.seed,out))
-  setnames(g,c("chem.list","sum.type","puc.list","fug.file","chem.file","chem.frac.file","puc.type.file","compart.file",
+  setnames(g,c("chem.list","hab.prac","puc.list","fug.file","chem.file","chem.frac.file","puc.type.file","compart.file",
                "puc.met.file","skin.area.file","removal.file","vent.file","diary.prefix","run.name","n.houses",
                "init.seed","prog","parallel","puc.offset","first.house","last.house","comp.method","save.r.objects",
                "house.seed","puc.seed","chem.seed","out"))
