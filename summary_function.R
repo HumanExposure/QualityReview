@@ -231,6 +231,23 @@ read.pophouse = function(run.name) {
   return(pophouse)
 }
 
+#read.puc.use reads the PUC_use_data
+read.puc.use = function(hab.prac,puc.list){
+  if (is.null(hab.prac)) hab.prac <- cf$hab.prac
+  x <- fread(paste0("input/",hab.prac))
+  setnames(x,tolower(names(x)))
+  #if (exists("source.id",x)) setnames(x,"puc","source.id")
+  if(length(puc.list>0)) {
+    x <- x[x$source.id %in% puc.list] #??
+    for (i in 1:length(puc.list)) {
+      if (!puc.list[i] %in% x$source.id) cat("  PUC ",puc.list[i]," not on PUC MET file")
+    }
+  }
+  setnames(x,c("source.id","source_description","HT","HT_CV","AT","Prev_M","Prev_F","Prev_child","Freq","Freq_CV","Mass","Mass_CV"))
+  return(x)
+}
+
+
 
 pop <- read.pophouse(cf$run.name)
 
@@ -242,51 +259,66 @@ chemp <- read.chem.props(cf$chem.file,cf$chem.list)
 
 puc <- read.puc.types(cf$puc.type.file,cf$puc.list)
 
+hp <- read.puc.use(cf$hab.prac,cf$puc.list)
 
 
-
-#person.data    <- pop[(cf$first.house-1):(cf$last.house-1)]
 non_PUC <- 0
 notP_O <- 0 
 p_used <- 0
 o_used <- 0
-for (hn in (cf$first.house):(cf$last.house)){
-  pd <- person.data[person.data$house==hn-1]
-  pp <- list.persons(pd)
-  print(pp$age)
-  
-  abm <- read.diary(cf$diary.prefix,cf$run.name,hn,pp)
-  #print(abm[3,])
-  for (n in cf$puc.list){
-    #print (n)
-  if ((n%in%abm$source.id)==FALSE){
-    non_PUC= non_PUC+1 # no of households that are non-users of the PUCs in model run
-  }
-  }
-  p_age <- (pop$age_years[hn-1]) #the age of the primary at this household
-  
-  for (q in 1:nrow(abm)){
-    if ((abm$age[q]==p_age) && (abm$source.id[q] %in% cf$puc.list)){#correct order of in statement
-      p_used <- 1
-    }else if ((abm$age[q]!=p_age) && (abm$source.id[q] %in% cf$puc.list)){
-      o_used <- 1
-    }
-    
-  }
-  if ((p_used==0)&&o_used==1){
-    notP_O <- notP_O+1
-  }
-  
-}
+
+##DO NOT DELETE DOUBLE HASH!!
+
+##for (hn in (cf$first.house):(cf$last.house)){
+##  pd <- person.data[person.data$house==hn-1]
+##  pp <- list.persons(pd)
+##  print(pp$age)
+##  
+##  abm <- read.diary(cf$diary.prefix,cf$run.name,hn,pp)
+##  #print(abm[3,])
+##  for (n in cf$puc.list){
+##    #print (n)
+##  if ((n%in%abm$source.id)==FALSE){
+##    non_PUC= non_PUC+1 # no of households that are non-users of the PUCs in model run
+##  }
+##  }
+##  p_age <- (pop$age_years[hn-1]) #the age of the primary at this household
+##  
+##  for (q in 1:nrow(abm)){
+##    if ((abm$age[q]==p_age) && (abm$source.id[q] %in% cf$puc.list)){#correct order of in statement
+##      p_used <- 1
+##    }else if ((abm$age[q]!=p_age) && (abm$source.id[q] %in% cf$puc.list)){
+##      o_used <- 1
+##    }
+##    
+##  }
+##  if ((p_used==0)&&o_used==1){
+##    notP_O <- notP_O+1
+##  }
+##  
+##}
   print (notP_O)
   print (non_PUC)
+
+  
+hp <- data.table(hp)
+hp <- subset(hp,select = c("source.id","Prev_M","Prev_F","Prev_child","Freq","Freq_CV","Mass","Mass_CV"))
+
+#adding new col 
+hp$newdata <- hp$source.id
+
+# rearranging col 
+#hp <- hp[,c("source.id","Prev_M","Prev_F","Prev_child","newdata","Freq","Freq_CV","Mass","Mass_CV")]
+
+
+
 
 
 if ('Male' %in% person.data$gender && 'Female' %in% person.data$gender){
   G = "M and F"
-}else if ('Male' %in% person.data$gender){
+}else if (('Male' %in% person.data$gender)){#add female not in
   G= "M only"
-}else if ('Female' %in% person.data$gender){
+}else if (('Female' %in% person.data$gender)){#add male not in
   G= "F only"
 }
 
@@ -296,16 +328,8 @@ min_age <- min(person.data$age_years)#min age of primary person
   
 
 
-##don't delete double hash
 print("---------------------------------")
-v <- as.array(vent$sex)
-num <- length(v)
-half<- num/2
-sexStr <- vector()
-sexStr <- append(sexStr,v[1])
-sexStr <- append(sexStr,v[num])
-sexStr <- paste(unlist(sexStr),collapse = '')
- 
+
 #sheet 1
 
 annual.info <- data.table(unlist(cf$chem.list),non_PUC,notP_O,unlist(cf$puc.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
@@ -321,8 +345,9 @@ setnames(annual.info2,c("dtxsid","non PUC","not p but o","PUC","#households","mi
 write.xlsx((annual.info2),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet2",append = TRUE,row.names = FALSE)
 
 #sheet 3
-
-write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet3",row.names=TRUE, col.names = FALSE,append = TRUE)
+#setnames(hp,c("source.id","source_description","HT","HT_CV","AT","Prev_M","Prev_F","Prev_child","Freq","Freq_CV","Mass","Mass_CV"))
+  
+write.xlsx((hp),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="sheet3",row.names = FALSE,append = TRUE)
 
 
 
