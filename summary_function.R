@@ -257,12 +257,16 @@ vent <- read.vent.file(cf$vent.file)
 
 chemp <- read.chem.props(cf$chem.file,cf$chem.list)
 
-puc <- read.puc.types(cf$puc.type.file,cf$puc.list)
-
-hp <- read.puc.use(cf$hab.prac,cf$puc.list)
 
 
+#data frames to hold data 
+HH.data            <- data.frame("INFO"=character(),"PRIMARY ONLY"=integer(),"EVERYBODY"=integer(),stringsAsFactors = FALSE)
+chem.data          <- data.frame("DTXID"=character(),"Chemical Name"=character(),"CAS"=integer(),"Product name"=character(),"Code"=character(),stringsAsFactors = FALSE)
+PUC.data           <- data.frame("PUC"=character(),"PUC name"=character(),"Households that use PUC"=integer(),"Households that don't use PUC"=integer(),"Primaries that use PUC, and others do"=integer(),"Primaries that don't use PUC, but others do"=integer(),"Code"=character(), stringsAsFactors = FALSE)
+HP.data            <- data.frame("PUC"=character(),"Description"=character(),"E_Prev_M"=integer(),"A_Prev_M"=integer(),"E_Prev_F"=integer(),"A_Prev_F"=integer(),"E_Prev_Ch"=integer(),"A_Prev_Ch"=integer(),"E_Freq"=integer(),"A_Freq"=integer(),"E_Mass"=integer(),"A_Mass"=integer(), stringsAsFactors = FALSE)
+                      
 
+#OPTIONAL.data      <- data.frame()
 
 
 max_age <- 0
@@ -274,17 +278,77 @@ max_F_age <- 0
 max_Ch_age <- 0
 min_Ch_age <- 0
 
-for (u in 1:length(cf$puc.list)){
-  apuc <- cf$puc.list
+
+#this is looking at only primary individuals
+
+if ('Male' %in% person.data$gender && 'Female' %in% person.data$gender){
+  G = "M and F"
+}else if (('Male' %in% person.data$gender&&!"Female"%in%person.data)){#add female not in
+  G= "M only"
+}else if (('Female' %in% person.data$gender&&!"Male"%in%person.data)){#add male not in
+  G= "F only"
+}
+
+
+#Write sheet 1 alt.
+
+HH.data[nrow(HH.data)+1, ] <- c("No. of househods",cf$last.house-cf$first.house+1,cf$last.house-cf$first.house+1)
+HH.data[nrow(HH.data)+1, ] <- c("Min age",min_age,0)
+HH.data[nrow(HH.data)+1, ] <- c("Max age",max_age,0)
+HH.data[nrow(HH.data)+1, ] <- c("Max age - Min age",max_age-min_age,0)
+HH.data[nrow(HH.data)+1, ] <- c("Min male age",min_M_age,0)
+HH.data[nrow(HH.data)+1, ] <- c("Max male age",max_M_age,0)
+HH.data[nrow(HH.data)+1, ] <- c("Min female age",min_F_age,0)
+HH.data[nrow(HH.data)+1, ] <- c("Max female age",max_F_age,0)
+HH.data[nrow(HH.data)+1, ] <- c("Min child age",min_Ch_age,0)
+HH.data[nrow(HH.data)+1, ] <- c("Max child age",max_Ch_age,0)
+HH.data[nrow(HH.data)+1, ] <- c("Gender","","")
+ 
+
+
+
+
+#-------------
+
+#H&P
+
+#habits and practices code
+for (a in 1:length(unlist(cf$puc.list))){
+  
+  
+  #print (unlist(cf$puc.list)[u])
+  puc <- read.puc.types(cf$puc.type.file,unlist(cf$puc.list)[a])
+  hp <- read.puc.use(cf$hab.prac,unlist(cf$puc.list)[a])
+  
+  
+  apuc <- unlist(cf$puc.list)[a]
   non_PUC <- 0
   notP_O <- 0
+
+#-------------H&P begins  
   
-  annual.info2 <- data.table(apuc)
+  #apuc <- unlist(cf$puc.list)[a]
   
+  pop_m12 <- 0.0 #counter for the population of males above 12 yrs
+  pop_f12 <- 0.0 #counter for the population of females above 12 yrs
+  pop_ch <- 0.0 #counter for the population of children (<=12)
+  
+  puc_user <- 0.0 #counter for puc users only
+  
+  x_puc <- 0.0 # counter for the number of times puc used
+  
+  mass_puc <- 0.0 #counter for sum of mass of puc used
+  
+  p_puc_m12 <- 0.0 # counter for prevalence of use of puc in m12 demographic
+  p_puc_f12 <- 0.0 #counter for prevalence of use of puc in f12 demographic
+  p_puc_ch <- 0.0 # counter for prevalence of use of puc in ch demographic
+  
+ #----------------------------------- 
   for (hn in (cf$first.house):(cf$last.house)){
+    
     pd <- person.data[person.data$house==hn]
     pp <- list.persons(pd)
-    print(pp$age)
+   # print(pp$age)
     
     abm <- read.diary(cf$diary.prefix,cf$run.name,hn,pp)
     
@@ -312,162 +376,105 @@ for (u in 1:length(cf$puc.list)){
     prim <- abm[abm$primary==1]
     other <- abm[abm$primary==0]
     
-    if ((!apuc%in%prim$source.id)&&(apuc%in%other$source.id)){
+    # print("PUC #:")
+    # print (u)
+    # 
+    # print("house number:")
+    # print(hn)
+    # 
+    # print("APUC:")
+    # print(apuc)
+    # 
+    if ((!is.element(apuc,prim$source.id)&&is.element(apuc,other$source.id))==TRUE){
       
       notP_O= notP_O+1
     }
-    annual.info2$non_user[u] <- non_PUC
-    annual.info2$notP_O[u] <- notP_O
-    annual.info2$code <- puc$code 
     
-  }
-  
-  
-  
-  
-  for (n in cf$puc.list){
-    if ((n%in%abm$source.id)==FALSE){
-      non_PUC= non_PUC+1 # no of households that are non-users of the PUCs in model run
-    }
-  }
-  p_age <- (pop$age_years[hn]) #the age of the primary at this household
-  
-  for (q in 1:nrow(abm)){
-    if ((abm$age[q]==p_age) && (abm$source.id[q] %in% cf$puc.list)){#correct the order of in statement
-      p_used <- 1
-      
-    }else if ((abm$age[q]!=p_age) && (abm$source.id[q] %in% cf$puc.list)){
-      o_used <- 1
-      
-    }
-  }
-  if ((p_used==0)&&o_used==1){
-    notP_O <- notP_O+1
-  }
-  
-}
-
-
-if ('Male' %in% person.data$gender && 'Female' %in% person.data$gender){
-  G = "M and F"
-}else if (('Male' %in% person.data$gender&&!"Female"%in%person.data)){#add female not in
-  G= "M only"
-}else if (('Female' %in% person.data$gender&&!"Male"%in%person.data)){#add male not in
-  G= "F only"
-}
-
-
-#write sheet 1
-
-annual.info <- data.table(unlist(cf$chem.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,min_M_age,max_M_age,min_F_age,max_F_age,min_Ch_age,max_Ch_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
-
-annual.tab <- transpose(annual.info)
-
-row.names(annual.tab) <- c("dtxsid","#households","min_age","max_age","max_age-min_age","Min_M_age","Max_M_age","Min_F_age","Max_F_age","Min_ch_age","Max_ch_age","genders","Kp","chemicals","CASRN","code","product_name")
-
-write.xlsx((annual.tab),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="HH",row.names=TRUE, col.names = FALSE)
-
-
-#sheet 2
-#annual.info2 <- data.table(non_PUC,notP_O,unlist(cf$puc.list),cf$last.house-cf$first.house+1,min_age,max_age,max_age-min_age,G,chemp$kp,chemp$chemical,chemp$casrn,puc$code,puc$product_type,keep.rownames = TRUE)
-
-setnames(annual.info2,c("PUC","#HH don't use pUC","not p but o","code"))
-
-write.xlsx((annual.info2),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="PUC_use",append = TRUE,row.names = FALSE)
-
-
-
-
-
-hp <- data.table(hp)
-hp <- subset(hp,select = c("source.id","Prev_M","Prev_F","Prev_child","Freq","Freq_CV","Mass","Mass_CV"))
-
-
-#habits and practices code
-for (a in 1:length(cf$puc.list)){
-  apuc <- cf$puc.list[a]
-  
-  pop_m12 <- 0 #counter for the population of males above 12 yrs
-  pop_f12 <- 0 #counter for the population of females above 12 yrs
-  pop_ch <- 0 #counter for the population of children (<=12)
-  
-  puc_user <- 0 #counter for puc users only
-  
-  x_puc <- 0 # counter for the number of times puc used
-  
-  mass_puc <- 0 #counter for sum of mass of puc used
-  
-  p_puc_m12 <- 0 # counter for prevalence of use of puc in m12 demographic
-  p_puc_f12 <- 0 #counter for prevalence of use of puc in f12 demographic
-  p_puc_ch <- 0 # counter for prevalence of use of puc in ch demographic
-  
-  
-  for (hn in (cf$first.house):(cf$last.house)){
+    
+    #------------------------------H&P begins
     pd <- person.data[person.data$house==hn]
     pp <- list.persons(pd)
-    print(pp$age)
-    
+
     HH <- read.diary(cf$diary.prefix,cf$run.name,hn,pp)
     
     females <- HH[HH$sex=="F"]    # sort for females in HH
     fem <- females[females$age>12]# sort for females > 12 yrs
-    pop_f12 <- pop_f12+nrow(fem) #the count 
+    pop_f12 <- pop_f12+length(unique(fem$p)) #the count 
     
     
     males <- HH[HH$sex=="M"]      # sort for males in HH
     mal <- males[males$age>12]    #sort for males in HH > 12 yrs
-    pop_m12 <- pop_m12+nrow(mal) #the count
+    pop_m12 <- pop_m12+length(unique(mal$p)) ##############the count
+    #print("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    #print(length(unique(mal$p)))
+    
     
     children <- HH[HH$age<=12] #sort for children (<=12)
-    pop_ch <- pop_ch+nrow(children) #the count
-    
+    pop_ch <- pop_ch+length(unique(children$p)) #the count
+
     uniq <- unique(HH$person) # each person in this HH
     
     for (u in uniq){
       #print(u)
       HHsub <- HH[HH$person==u] #sort by this person
       if (apuc%in%HHsub$source.id){
-        puc_user <- puc_user+1
+        puc_user <- puc_user+1.0
         
         HHsub <- HHsub[HHsub$source.id==apuc] #sort by this puc
         x_puc <- x_puc + nrow(HHsub)
-        #print(x_puc)
         mass_puc <- mass_puc+sum(as.numeric(HHsub$mass))
-        print(mass_puc)
-      }
+      } 
       if (HHsub$sex[1]=="M"&&HHsub$age[1]>12){
-        p_puc_m12 <- p_puc_m12+1
+        p_puc_m12 <- p_puc_m12+1.0
       }
       if (HHsub$sex[1]=="F"&&HHsub$age[1]>12){
-        p_puc_f12 <- p_puc_f12+1
+        p_puc_f12 <- p_puc_f12+1.0
       }
       if (HHsub$age[1]<=12){
-        p_puc_ch <- p_puc_ch+1
+        p_puc_ch <- p_puc_ch+1.0
       }
     }
+    
   }
+  PUC.data[nrow(PUC.data)+1, ] <- c(apuc,puc$description,0,non_PUC,0,notP_O,puc$code)
+  
   actual_freq_puc <- x_puc/puc_user
   actual_mass_puc <- mass_puc/x_puc
-  prev_puc_m12 <- p_puc_m12/pop_m12
+  prev_puc_m12 <- p_puc_m12/pop_m12 #################
+  
   prev_puc_f12 <- p_puc_f12/pop_f12
   prev_puc_ch <- p_puc_ch/pop_ch
   
-  hp$actual_freq_puc[a] <- actual_freq_puc
-  hp$actual_mass_puc[a] <- actual_mass_puc
-  hp$prev_puc_m12[a] <- prev_puc_m12
-  hp$prev_puc_f12[a] <- prev_puc_f12
-  hp$prev_puc_ch[a] <- prev_puc_ch
+  HP.data[nrow(HP.data)+1, ] <- c(apuc,hp$source_description,hp$Prev_M,prev_puc_m12,hp$Prev_F,prev_puc_f12,hp$Prev_child,prev_puc_ch,hp$Freq,actual_freq_puc,hp$Mass,actual_mass_puc)
+
+  print("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  print(hp$source_description)
+  
+  
+  HH.data[nrow(HH.data)+1, ] <- c("population of M >12","",pop_m12)
+  HH.data[nrow(HH.data)+1, ] <- c("population of F >12","",pop_f12)
+  HH.data[nrow(HH.data)+1, ] <- c("population of M/F <=12","",pop_ch)
+  
+  HH.data[nrow(HH.data)+1, ] <- c("No of people who use the PUC","",puc_user)
+  HH.data[nrow(HH.data)+1, ] <- c("No of times people use the PUC","",x_puc)
+  HH.data[nrow(HH.data)+1, ] <- c("sum of mass of puc used","",mass_puc)
+  
+  
+  HH.data[nrow(HH.data)+1, ] <- c("Prevalence of puc use in M >12","",p_puc_m12)
+  HH.data[nrow(HH.data)+1, ] <- c("Prevalence of puc use in F >12","",p_puc_f12)
+  HH.data[nrow(HH.data)+1, ] <- c("Prevalence of puc use in M/F <=12","",p_puc_ch)
+  
+  HH.data[nrow(HH.data)+1, ] <- c("End of this household","","")
   
 }
 
-#sheet 3
+#HH info
+write.xlsx((HH.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="Household Summary",row.names=FALSE)
 
-# rearranging col 
-hp <- hp[,c("source.id","Prev_M","prev_puc_m12","Prev_F","prev_puc_f12","Prev_child","prev_puc_ch","Freq","actual_freq_puc","Freq_CV","Mass","actual_mass_puc","Mass_CV")]
+#PUC info
+write.xlsx((PUC.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="PUC_use",append = TRUE,row.names = FALSE)
 
-setnames(hp,c("PUC","E_Prev_M","A_Prev_M","E_Prev_F","A_Prev_F","E_Prev_Ch","A_Prev_Ch","E_Freq","A_Freq","Freq_CV","E_Mass","A_Mass","Mass_CV"))
+#H&P info
+write.xlsx((HP.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="H&P",append = TRUE,row.names = FALSE)
 
-write.xlsx((hp),file="C:/Users/39492/Desktop/HEM S2D R/sum.xlsx",sheetName="H&P",row.names = FALSE,append = TRUE)
-
-
-
+#
