@@ -16,6 +16,9 @@ library(xlsx)
 wd <- "C:/Users/39492/Desktop/HEM S2D R"
 setwd(wd)
 
+optional.file="ocf.txt"
+
+
 control.file="test0.txt"
 
 
@@ -88,7 +91,46 @@ read.control.file = function(control.file) {
   return(g)
 }
 
+#read optional file
 
+read.optional.file = function(optional.file){
+  if (is.null(optional.file)) optional.file <- "optional_control_file.txt"
+  lc <- str_length(optional.file)
+  if (!substr(optional.file,lc-3,lc)=='.txt') optional.file <- paste0(optional.file, ".txt")
+  x <- fread(paste0("input/",optional.file),header = FALSE)
+  setnames(x,c("key","setting"))
+  x$key  <- tolower(x$key)
+  #start of possible rows
+  total.absorbed.dose                                  <- x$setting[x$key=="total.absorbed.dose"]                      
+  dermal.absorbed.dose.total                           <- x$setting[x$key=="dermal.absorbed.dose.total"] 
+  dermal.absorbed.dose.direct                          <- x$setting[x$key=="dermal.absorbed.dose.direct"] 
+  dermal.absorbed.dose.indirect                        <- x$setting[x$key=="dermal.absorbed.dose.indirect"] 
+  inhalation.absorbed.dose.total                       <- x$setting[x$key=="inhalation.absorbed.dose.total"] 
+  inhalation.absorbed.dose.direct                      <- x$setting[x$key=="inhalation.absorbed.dose.direct"] 
+  inhalation.absorbed.dose.indirect                    <- x$setting[x$key=="inhalation.absorbed.dose.indirect"] 
+  ingestion.absorbed.dose.total                        <- x$setting[x$key=="ingestion.absorbed.dose.total"] 
+  ingestion.absorbed.dose.direct                       <- x$setting[x$key=="ingestion.absorbed.dose.direct"] 
+  ingestion.absorbed.dose.indirect                     <- x$setting[x$key=="ingestion.absorbed.dose.indirect"] 
+  mass.down.the.drain                                  <- x$setting[x$key=="mass.down.the.drain"] 
+  mass.out.the.window                                  <- x$setting[x$key=="mass.out.the.window"] 
+  mass.in.solid.waste                                  <- x$setting[x$key=="mass.in.solid.waste"] 
+  #start of possible columns
+  age.groups.of.interest                               <- x$setting[x$key=="age.groups.of.interest"] 
+  population.average.of.annual.mean.for.all.population <- x$setting[x$key=="population.average.of.annual.mean.for.all.population"] 
+  population.average.of.annual.mean.for.users.only     <- x$setting[x$key=="population.average.of.annual.mean.for.users.only"] 
+  population.average.of.maximum.daily.dose             <- x$setting[x$key=="population.average.of.maximum.daily.dose"]
+  
+  g <- as.data.table(list(total.absorbed.dose,dermal.absorbed.dose.total,dermal.absorbed.dose.direct,dermal.absorbed.dose.indirect,inhalation.absorbed.dose.total,inhalation.absorbed.dose.direct,inhalation.absorbed.dose.indirect,ingestion.absorbed.dose.total,ingestion.absorbed.dose.direct,
+                          ingestion.absorbed.dose.indirect,mass.down.the.drain,mass.out.the.window,mass.in.solid.waste,age.groups.of.interest,population.average.of.annual.mean.for.all.population,population.average.of.annual.mean.for.users.only,population.average.of.maximum.daily.dose))
+  setnames(g,c("total.absorbed.dose","dermal.absorbed.dose.total","dermal.absorbed.dose.direct","dermal.absorbed.dose.indirect","inhalation.absorbed.dose.total","inhalation.absorbed.dose.direct","inhalation.absorbed.dose.indirect","ingestion.absorbed.dose.total","ingestion.absorbed.dose.direct",
+               "ingestion.absorbed.dose.indirect","mass.down.the.drain","mass.out.the.window","mass.in.solid.waste","age.groups.of.interest","population.average.of.annual.mean.for.all.population","population.average.of.annual.mean.for.users.only",
+               "population.average.of.maximum.daily.dose"))
+  return(g)
+}
+
+
+
+#read vent file
 read.vent.file = function(vent.file){
   if (is.null(vent.file)) vent.file <- g$vent.file
   x <- fread(paste0("input/",vent.file))
@@ -247,7 +289,16 @@ read.puc.use = function(hab.prac,puc.list){
   return(x)
 }
 
+#read.s2d.annual reads the s2d annual files data
+read.s2d.annual = function(house_number,chemical) {
+  annual <- fread(paste0("S2D/test0/Annual/", "House_", house_number, ".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"))
+  #####add condition for if the file exists######
+  annual <- annual[annual$dtxsid==chemical]
+  return (annual)
+}
 
+
+od <- read.optional.file(optional.file)
 
 pop <- read.pophouse(cf$run.name)
 
@@ -265,7 +316,6 @@ chem.data          <- data.frame("DTXID"=character(),"Chemical Name"=character()
 PUC.data           <- data.frame("PUC"=character(),"PUC name"=character(),"Households that use PUC"=integer(),"Households that don't use PUC"=integer(),"Primaries that use PUC, and others do"=integer(),"Primaries that don't use PUC, but others do"=integer(),"Code"=character(), stringsAsFactors = FALSE)
 HP.data            <- data.frame("PUC"=character(),"Description"=character(),"E_Prev_M"=integer(),"A_Prev_M"=integer(),"E_Prev_F"=integer(),"A_Prev_F"=integer(),"E_Prev_Ch"=integer(),"A_Prev_Ch"=integer(),"E_Freq"=integer(),"A_Freq"=integer(),"E_Mass"=integer(),"A_Mass"=integer(), stringsAsFactors = FALSE)
 QA.data            <- data.frame("INFO"=character(),"PRIMARY ONLY"=integer(),"EVERYBODY"=integer(),stringsAsFactors = FALSE)
-#OPTIONAL.data      <- data.frame()
 
 for (i in length(unlist(cf$chem.list))){
   chem.data[nrow(chem.data)+1,] <- c(unlist(cf$chem.list)[i],chemp$chemical,chemp$cas)
@@ -313,22 +363,13 @@ if (grepl("M",popsub$genders[i]) && grepl("F",popsub$genders[i])){
   G_E <- "F only"
 }
 }
-#print(popsub$genders)
-#Write household summary.
-
-
-
-
 
 #-------------
 for (a in 1:length(unlist(cf$puc.list))){
   
-  
-  #print (unlist(cf$puc.list)[u])
   puc <- read.puc.types(cf$puc.type.file,unlist(cf$puc.list)[a])
   hp <- read.puc.use(cf$hab.prac,unlist(cf$puc.list)[a])
-  
-  
+
   apuc <- unlist(cf$puc.list)[a]
   non_PUC <- 0
   notP_O <- 0
@@ -336,8 +377,6 @@ for (a in 1:length(unlist(cf$puc.list))){
   P_O <- 0
 
 #-------------H&P begins  
-  
-  #apuc <- unlist(cf$puc.list)[a]
   
   pop_m12 <- 0.0 #counter for the population of males above 12 yrs
   pop_f12 <- 0.0 #counter for the population of females above 12 yrs
@@ -358,8 +397,7 @@ for (a in 1:length(unlist(cf$puc.list))){
     
     pd <- person.data[person.data$house==hn]
     pp <- list.persons(pd)
-   # print(pp$age)
-    
+
     abm <- read.diary(cf$diary.prefix,cf$run.name,hn,pp)
     
     
@@ -436,8 +474,6 @@ for (a in 1:length(unlist(cf$puc.list))){
     males <- HH[HH$sex=="M"]      # sort for males in HH
     mal <- males[males$age>12]    #sort for males in HH > 12 yrs
     pop_m12 <- pop_m12+length(unique(mal$p)) ##############the count
-    #print("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    #print(length(unique(mal$p)))
     
     
     children <- HH[HH$age<=12] #sort for children (<=12)
@@ -446,7 +482,6 @@ for (a in 1:length(unlist(cf$puc.list))){
     uniq <- unique(HH$person) # each person in this HH
     
     for (u in uniq){
-      #print(u)
       HHsub <- HH[HH$person==u] #sort by this person
       if (apuc%in%HHsub$source.id){
         puc_user <- puc_user+1.0
@@ -478,10 +513,7 @@ for (a in 1:length(unlist(cf$puc.list))){
   
   HP.data[nrow(HP.data)+1, ] <- c(apuc,hp$source_description,hp$Prev_M,prev_puc_m12,hp$Prev_F,prev_puc_f12,hp$Prev_child,prev_puc_ch,hp$Freq,actual_freq_puc,hp$Mass,actual_mass_puc)
 
-  print("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-  print(hp$source_description)
-  
-  
+
   QA.data[nrow(QA.data)+1, ] <- c("population of M >12","",pop_m12)
   QA.data[nrow(QA.data)+1, ] <- c("population of F >12","",pop_f12)
   QA.data[nrow(QA.data)+1, ] <- c("population of M/F <=12","",pop_ch)
@@ -514,7 +546,6 @@ HH.data[nrow(HH.data)+1, ] <- c("Max child age",max_Ch_age_P,max_Ch_age_E)
 HH.data[nrow(HH.data)+1, ] <- c("Gender",G_P,G_E)
 
 
-
 #HH info
 write.xlsx((HH.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="Household Summary",row.names=FALSE)
 
@@ -530,4 +561,176 @@ write.xlsx((HP.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",
 
 #QA
 write.xlsx((QA.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="QA sheet",append = TRUE,row.names = FALSE)
+
+
+#Optional part
+for (a in 1:length(unlist(cf$chem.list))){
+  #print("length")
+  #print(length(unlist(cf$chem.list)))
+  #OPT.data <- data.frame
+  OPT.data <- data.frame("Rows/Columns"=character(),"Age"=character(),"Pop avg of annual mean - all pop"=integer(),"Pop avg of annual mean - users only"=integer(),"Pop avg of max dialy dose"=integer(),stringsAsFactors = FALSE)
+  achem <- unlist(cf$chem.list)[a]
+  print(achem)
+  #age groups
+  #NA for now
+  
+  #total absorbed dose
+  all_tot_ad <- 0
+  users_tot_ad <- 0
+  max_tot_ad <- 0
+  
+  #dermal absorbed dose total
+  all_der_tot <- 0
+  users_der_tot <- 0
+  max_der_tot <- 0
+  
+  #dermal absorbed dorse direct
+  all_der_dir <- 0
+  users_der_dir <- 0
+  max_der_dir <- 0
+  
+  #dermal absorbed dose indirect
+  all_der_ind <- 0
+  users_der_ind <- 0
+  max_der_ind <- 0
+  
+  #inhalation absorbed dose total
+  all_inh_tot <- 0
+  users_inh_tot <- 0
+  max_inh_tot <- 0
+  
+  #inhalation absorbed dose direct
+  all_inh_dir <- 0
+  users_inh_dir <- 0
+  max_inh_dir <- 0
+  
+  #inhalation absorbed dose indirect
+  all_inh_ind <- 0
+  users_inh_ind <- 0
+  max_inh_ind <- 0
+  
+  #ingestion absorbed dose total
+  all_ing_tot <- 0
+  users_ing_tot <- 0
+  max_ing_tot <- 0
+  
+  #ingestion absorbed dose direct
+  all_ing_dir <- 0
+  users_ing_dir <- 0
+  max_ing_dir <- 0
+  
+  #ingestion absorbed dose indirect
+  all_ing_ind <- 0
+  users_ing_ind <- 0
+  max_ing_ind <- 0
+  
+  #mass down the drain
+  all_mass_drain <- 0
+  users_mass_drain <- 0
+  max_mass_drain <- 0
+  
+  #mass out the window
+  all_mass_window <- 0
+  users_mass_window <- 0
+  max_mass_window <- 0
+  
+  #mass in solid waste
+  all_mass_waste <- 0
+  users_mass_waste <- 0
+  max_mass_waste <- 0
+  
+for (i in cf$first.house:cf$last.house){
+  chem_annual <- read.s2d.annual(i,achem)
+
+  #total absorbed dose
+  all_tot_ad <- all_tot_ad + chem_annual$dir.derm.abs + chem_annual$dir.inhal.abs + chem_annual$dir.ingest.abs + chem_annual$ind.derm.abs + chem_annual$ind.inhal.abs + chem_annual$ind.ingest.abs
+  users_tot_ad <- users_tot_ad + chem_annual$dir.derm.exp + chem_annual$dir.inhal.exp + chem_annual$dir.ingest.exp + chem_annual$ind.derm.exp + chem_annual$ind.inhal.exp + chem_annual$ind.ingest.exp
+  max_tot_ad <- max_tot_ad + chem_annual$dir.derm.max + chem_annual$dir.inhal.max + chem_annual$ind.derm.max + chem_annual$ind.inhal.max
+  
+  #dermal absorbed dose total
+  all_der_tot <- all_der_tot + chem_annual$dir.derm.abs + chem_annual$ind.derm.abs
+  users_der_tot <- users_der_tot + chem_annual$dir.derm.exp + chem_annual$ind.derm.exp
+  max_der_tot <- max_der_tot + chem_annual$dir.derm.max + chem_annual$ind.derm.max
+  
+  #dermal absorbed dorse direct
+  all_der_dir <- all_der_dir + chem_annual$dir.derm.abs
+  users_der_dir <- users_der_dir + chem_annual$dir.derm.exp
+  max_der_dir <- max_der_dir + chem_annual$dir.derm.max
+  
+  #dermal absorbed dose indirect
+  all_der_ind <- all_der_ind + chem_annual$ind.derm.abs
+  users_der_ind <- users_der_ind + chem_annual$ind.derm.exp
+  max_der_ind <- max_der_ind + chem_annual$ind.derm.max
+  
+  #inhalation absorbed dose total
+  all_inh_tot <- all_inh_tot + chem_annual$dir.inhal.abs + chem_annual$ind.inhal.abs
+  users_inh_tot <- users_inh_tot + chem_annual$dir.inhal.exp + chem_annual$ind.inhal.exp
+  max_inh_tot <- max_inh_tot + chem_annual$dir.inhal.max + chem_annual$ind.inhal.max
+  
+  #inhalation absorbed dose direct
+  all_inh_dir <- all_inh_dir + chem_annual$dir.inhal.abs
+  users_inh_dir <- users_inh_dir + chem_annual$dir.inhal.exp
+  max_inh_dir <- max_inh_dir + chem_annual$dir.inhal.max
+  
+  #inhalation absorbed dose indirect
+  all_inh_ind <- all_inh_ind + chem_annual$ind.inhal.abs
+  users_inh_ind <- users_inh_ind + chem_annual$ind.inhal.exp
+  max_inh_ind <- max_inh_ind + chem_annual$ind.inhal.max
+  
+  #ingestion absorbed dose total
+  all_ing_tot <- all_ing_tot + chem_annual$dir.ingest.abs + chem_annual$ind.ingest.abs
+  users_ing_tot <- users_ing_tot + chem_annual$dir.ingest.exp + chem_annual$ind.ingest.exp
+  max_ing_tot <- "NA"
+  
+  #ingestion absorbed dose direct
+  all_ing_dir <- all_ing_dir + chem_annual$dir.ingest.abs
+  users_ing_dir <- users_ing_dir + chem_annual$dir.ingest.exp
+  max_ing_dir <- "NA"
+  
+  #ingestion absorbed dose indirect
+  all_ing_ind <- all_ing_ind + chem_annual$ind.ingest.abs
+  users_ing_ind <- users_ing_ind + chem_annual$ind.ingest.exp
+  max_ing_ind <- "NA"
+  
+  #mass down the drain
+  all_mass_drain <- all_mass_drain + chem_annual$drain
+  users_mass_drain <- "NA"
+  max_mass_drain <- "NA"
+  
+  #mass out the window
+  all_mass_window <- all_mass_window + chem_annual$out.air
+  users_mass_window <- "NA"
+  max_mass_window <- "NA"
+  
+  #mass in solid waste
+  all_mass_waste <- all_mass_waste + chem_annual$waste
+  users_mass_waste <- "NA"
+  max_mass_waste <- "NA"
+  
+  #can use this to check the running totals:
+  #print("here!!!!!!!!!!!!!!!!!!!!")
+  #print(users_der_dir)
+  
+}
+    
+  #Store data
+  OPT.data[nrow(OPT.data)+1, ] <- c("total.absorbed.dose","NA",all_tot_ad,users_tot_ad,max_tot_ad)
+  OPT.data[nrow(OPT.data)+1, ] <- c("dermal.absorbed.dose.total","NA",all_der_tot,users_der_tot,max_der_tot)
+  OPT.data[nrow(OPT.data)+1, ] <- c("dermal.absorbed.dose.direct","NA",all_der_dir,users_der_dir,max_der_dir)
+  OPT.data[nrow(OPT.data)+1, ] <- c("dermal.absorbed.dose.indirect","NA",all_der_ind,users_der_ind,max_der_ind)
+  OPT.data[nrow(OPT.data)+1, ] <- c("inhalation.absorbed.dose.total","NA",all_inh_tot,users_inh_tot,max_inh_tot)
+  OPT.data[nrow(OPT.data)+1, ] <- c("inhalation.absorbed.dose.direct","NA",all_inh_dir,users_inh_dir,max_inh_dir)
+  OPT.data[nrow(OPT.data)+1, ] <- c("inhalation.absorbed.dose.indirect","NA",all_inh_ind,users_inh_ind,max_inh_ind)
+  OPT.data[nrow(OPT.data)+1, ] <- c("ingestion.absorbed.dose.total","NA",all_ing_tot,users_ing_tot,max_ing_tot)
+  OPT.data[nrow(OPT.data)+1, ] <- c("ingestion.absorbed.dose.direct","NA",all_ing_dir,users_ing_dir,max_ing_dir)
+  OPT.data[nrow(OPT.data)+1, ] <- c("ingestion.absorbed.dose.indirect","NA",all_ing_ind,users_ing_ind,max_ing_ind)
+  OPT.data[nrow(OPT.data)+1, ] <- c("mass.down.the.drain","NA",all_mass_drain,users_mass_drain,max_mass_drain)
+  OPT.data[nrow(OPT.data)+1, ] <- c("mass.out.the.window","NA",all_mass_window,users_mass_window,max_mass_window)
+  OPT.data[nrow(OPT.data)+1, ] <- c("mass.in.solid.waste","NA",all_mass_waste,users_mass_waste,max_mass_waste)
+  
+  #####if statments for options stated in the optional control file here before write statement#####
+  #write data
+  write.xlsx((OPT.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName=achem,append = TRUE,row.names = FALSE)
+  
+}
 
