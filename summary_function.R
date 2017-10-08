@@ -261,58 +261,66 @@ chemp <- read.chem.props(cf$chem.file,cf$chem.list)
 
 #data frames to hold data 
 HH.data            <- data.frame("INFO"=character(),"PRIMARY ONLY"=integer(),"EVERYBODY"=integer(),stringsAsFactors = FALSE)
-chem.data          <- data.frame("DTXID"=character(),"Chemical Name"=character(),"CAS"=integer(),"Product name"=character(),"Code"=character(),stringsAsFactors = FALSE)
+chem.data          <- data.frame("DTXID"=character(),"Chemical Name"=character(),"CAS"=integer(),stringsAsFactors = FALSE)
 PUC.data           <- data.frame("PUC"=character(),"PUC name"=character(),"Households that use PUC"=integer(),"Households that don't use PUC"=integer(),"Primaries that use PUC, and others do"=integer(),"Primaries that don't use PUC, but others do"=integer(),"Code"=character(), stringsAsFactors = FALSE)
 HP.data            <- data.frame("PUC"=character(),"Description"=character(),"E_Prev_M"=integer(),"A_Prev_M"=integer(),"E_Prev_F"=integer(),"A_Prev_F"=integer(),"E_Prev_Ch"=integer(),"A_Prev_Ch"=integer(),"E_Freq"=integer(),"A_Freq"=integer(),"E_Mass"=integer(),"A_Mass"=integer(), stringsAsFactors = FALSE)
-                      
-
+QA.data            <- data.frame("INFO"=character(),"PRIMARY ONLY"=integer(),"EVERYBODY"=integer(),stringsAsFactors = FALSE)
 #OPTIONAL.data      <- data.frame()
 
+for (i in length(unlist(cf$chem.list))){
+  chem.data[nrow(chem.data)+1,] <- c(unlist(cf$chem.list)[i],chemp$chemical,chemp$cas)
+}
 
-max_age <- 0
-min_age <- 0
-min_M_age <- 0
-max_M_age <- 0
-min_F_age <- 0
-max_F_age <- 0
-max_Ch_age <- 0
-min_Ch_age <- 0
+max_age_P <- 0
+min_age_P <- 0
+min_M_age_P <- 0
+max_M_age_P <- 0
+min_F_age_P <- 0
+max_F_age_P <- 0
+max_Ch_age_P <- 0
+min_Ch_age_P <- 0
 
+max_age_E <- 0
+min_age_E <- 0
+min_M_age_E <- 0
+max_M_age_E <- 0
+min_F_age_E <- 0
+max_F_age_E <- 0
+max_Ch_age_E <- 0
+min_Ch_age_E <- 0
+
+
+popsub <- pop[cf$first.house:cf$last.house, ]
 
 #this is looking at only primary individuals
 
-if ('Male' %in% person.data$gender && 'Female' %in% person.data$gender){
-  G = "M and F"
-}else if (('Male' %in% person.data$gender&&!"Female"%in%person.data)){#add female not in
-  G= "M only"
-}else if (('Female' %in% person.data$gender&&!"Male"%in%person.data)){#add male not in
-  G= "F only"
+if ('Male' %in% popsub$gender && 'Female' %in% popsub$gender){
+  G_P <- "M and F"
+}else if (('Male' %in% popsub$gender&&!"Female"%in%popsub$gender)){#add female not in
+  G_P <- "M only"
+}else if (('Female' %in% popsub$gender&&!"Male"%in%popsub$gender)){#add male not in
+  G_P <- "F only"
 }
 
 
-#Write sheet 1 alt.
+#this is looking at everyone
+for (i in 1:length(popsub$genders)){
+if (grepl("M",popsub$genders[i]) && grepl("F",popsub$genders[i])){
+  G_E <- "M and F"
+}else if (grepl("M",popsub$genders[i])&&!grepl("F",popsub$genders[i])){
+  G_E <- "M only"
+}else if (grepl("F",popsub$genders[i])&&!grepl("M",popsub$genders[i])){
+  G_E <- "F only"
+}
+}
+#print(popsub$genders)
+#Write household summary.
 
-HH.data[nrow(HH.data)+1, ] <- c("No. of househods",cf$last.house-cf$first.house+1,cf$last.house-cf$first.house+1)
-HH.data[nrow(HH.data)+1, ] <- c("Min age",min_age,0)
-HH.data[nrow(HH.data)+1, ] <- c("Max age",max_age,0)
-HH.data[nrow(HH.data)+1, ] <- c("Max age - Min age",max_age-min_age,0)
-HH.data[nrow(HH.data)+1, ] <- c("Min male age",min_M_age,0)
-HH.data[nrow(HH.data)+1, ] <- c("Max male age",max_M_age,0)
-HH.data[nrow(HH.data)+1, ] <- c("Min female age",min_F_age,0)
-HH.data[nrow(HH.data)+1, ] <- c("Max female age",max_F_age,0)
-HH.data[nrow(HH.data)+1, ] <- c("Min child age",min_Ch_age,0)
-HH.data[nrow(HH.data)+1, ] <- c("Max child age",max_Ch_age,0)
-HH.data[nrow(HH.data)+1, ] <- c("Gender","","")
- 
 
 
 
 
 #-------------
-
-#H&P
-
-#habits and practices code
 for (a in 1:length(unlist(cf$puc.list))){
   
   
@@ -324,6 +332,8 @@ for (a in 1:length(unlist(cf$puc.list))){
   apuc <- unlist(cf$puc.list)[a]
   non_PUC <- 0
   notP_O <- 0
+  use_PUC <- 0
+  P_O <- 0
 
 #-------------H&P begins  
   
@@ -352,42 +362,63 @@ for (a in 1:length(unlist(cf$puc.list))){
     
     abm <- read.diary(cf$diary.prefix,cf$run.name,hn,pp)
     
+    
+    
+    
     maxxx <- max(abm$age)
-    max_age <- max(max_age,maxxx)
+    max_age_E <- max(max_age,maxxx)
     minnn <- min(abm$age)
-    min_age <- min(min_age,minnn)
+    min_age_E <- min(min_age,minnn)
+  
+    max_age_P <- max(popsub$age_years)
+    min_age_P <- min(popsub$age_years)
+    
+    
+    popsub_F  <- popsub[popsub$gender=="Female"]
+    popsub_F  <- popsub_F[popsub_F$age_years>12]
+    max_F_age_P <- max(popsub_F$age_years)
+    min_F_age_P <- min(popsub_F$age_years)
+    
+    popsub_M  <- popsub[popsub$gender=="Male"]
+    popsub_M  <- popsub_M[popsub_M$age_years>12]
+    max_M_age_P <- max(popsub_M$age_years)
+    min_M_age_P <- min(popsub_M$age_years)
+    
+    
+    popsub_Ch <- popsub[popsub$age_years<=12]
+    max_Ch_age_P <- max(popsub_Ch$age_years)
+    min_Ch_age_P <- min(popsub_Ch$age_years)
+    
+    
+    
     
     M_abm <- abm[abm$sex=="M"]
-    max_M_age <- max(max_M_age, max(M_abm$age)) 
-    min_M_age <- min(min_M_age, min(M_abm$age))
+    max_M_age_E <- max(max_M_age_E, max(M_abm$age)) 
+    min_M_age_E <- min(min_M_age_E, min(M_abm$age))
     
     F_abm <- abm[abm$sex=="F"]
-    max_F_age <- max(max_F_age, max(F_abm$age))
-    min_F_age <- min(min_F_age, min(F_abm$age))
+    max_F_age_E <- max(max_F_age_E, max(F_abm$age))
+    min_F_age_E <- min(min_F_age_E, min(F_abm$age))
     
     Ch_abm <- abm[abm$age<=12]
-    max_Ch_age <- max(12, max(Ch_abm$age))
-    min_Ch_age <- min(12, min(Ch_abm$age))
+    max_Ch_age_E <- max(max_Ch_age_E, max(Ch_abm$age))
+    min_Ch_age_E <- min(min_Ch_age_E, min(Ch_abm$age))
     
-    if (!(n%in%abm$source.id)){
-      non_PUC= non_PUC+1 # no of households that are non-users of the PUCs in model run
+    if (!(apuc%in%abm$source.id)){
+      non_PUC <- non_PUC+1 # no of households that are non-users of the PUCs in model run
+    }else{
+      use_PUC <- use_PUC+1#no of households that are users of the PUC
     }
     
     prim <- abm[abm$primary==1]
     other <- abm[abm$primary==0]
-    
-    # print("PUC #:")
-    # print (u)
-    # 
-    # print("house number:")
-    # print(hn)
-    # 
-    # print("APUC:")
-    # print(apuc)
-    # 
+   
+     
     if ((!is.element(apuc,prim$source.id)&&is.element(apuc,other$source.id))==TRUE){
       
-      notP_O= notP_O+1
+      notP_O <- notP_O+1
+    }else if ((is.element(apuc,prim$source.id)&&is.element(apuc,other$source.id))==TRUE){
+      P_O <- P_O +1
     }
     
     
@@ -436,7 +467,7 @@ for (a in 1:length(unlist(cf$puc.list))){
     }
     
   }
-  PUC.data[nrow(PUC.data)+1, ] <- c(apuc,puc$description,0,non_PUC,0,notP_O,puc$code)
+  PUC.data[nrow(PUC.data)+1, ] <- c(apuc,puc$description,use_PUC,non_PUC,P_O,notP_O,puc$code)
   
   actual_freq_puc <- x_puc/puc_user
   actual_mass_puc <- mass_puc/x_puc
@@ -451,25 +482,45 @@ for (a in 1:length(unlist(cf$puc.list))){
   print(hp$source_description)
   
   
-  HH.data[nrow(HH.data)+1, ] <- c("population of M >12","",pop_m12)
-  HH.data[nrow(HH.data)+1, ] <- c("population of F >12","",pop_f12)
-  HH.data[nrow(HH.data)+1, ] <- c("population of M/F <=12","",pop_ch)
+  QA.data[nrow(QA.data)+1, ] <- c("population of M >12","",pop_m12)
+  QA.data[nrow(QA.data)+1, ] <- c("population of F >12","",pop_f12)
+  QA.data[nrow(QA.data)+1, ] <- c("population of M/F <=12","",pop_ch)
   
-  HH.data[nrow(HH.data)+1, ] <- c("No of people who use the PUC","",puc_user)
-  HH.data[nrow(HH.data)+1, ] <- c("No of times people use the PUC","",x_puc)
-  HH.data[nrow(HH.data)+1, ] <- c("sum of mass of puc used","",mass_puc)
+  QA.data[nrow(QA.data)+1, ] <- c("No of people who use the PUC","",puc_user)
+  QA.data[nrow(QA.data)+1, ] <- c("No of times people use the PUC","",x_puc)
+  QA.data[nrow(QA.data)+1, ] <- c("sum of mass of puc used","",mass_puc)
   
   
-  HH.data[nrow(HH.data)+1, ] <- c("Prevalence of puc use in M >12","",p_puc_m12)
-  HH.data[nrow(HH.data)+1, ] <- c("Prevalence of puc use in F >12","",p_puc_f12)
-  HH.data[nrow(HH.data)+1, ] <- c("Prevalence of puc use in M/F <=12","",p_puc_ch)
+  QA.data[nrow(QA.data)+1, ] <- c("Prevalence of puc use in M >12","",p_puc_m12)
+  QA.data[nrow(QA.data)+1, ] <- c("Prevalence of puc use in F >12","",p_puc_f12)
+  QA.data[nrow(QA.data)+1, ] <- c("Prevalence of puc use in M/F <=12","",p_puc_ch)
   
-  HH.data[nrow(HH.data)+1, ] <- c("End of this household","","")
+  QA.data[nrow(QA.data)+1, ] <- c("End of this PUC","","")
   
 }
 
+#write household data
+
+HH.data[nrow(HH.data)+1, ] <- c("No. of househods",cf$last.house-cf$first.house+1,"")
+HH.data[nrow(HH.data)+1, ] <- c("Min age",min_age_P,min_age_E)
+HH.data[nrow(HH.data)+1, ] <- c("Max age",max_age_P,max_age_E)
+HH.data[nrow(HH.data)+1, ] <- c("Max age - Min age",max_age_P-min_age_P,max_age_E-min_age_E)
+HH.data[nrow(HH.data)+1, ] <- c("Min male age",min_M_age_P,min_M_age_E)
+HH.data[nrow(HH.data)+1, ] <- c("Max male age",max_M_age_P,max_M_age_E)
+HH.data[nrow(HH.data)+1, ] <- c("Min female age",min_F_age_P,min_F_age_E)
+HH.data[nrow(HH.data)+1, ] <- c("Max female age",max_F_age_P,max_F_age_E)
+HH.data[nrow(HH.data)+1, ] <- c("Min child age",min_Ch_age_P,min_Ch_age_E)
+HH.data[nrow(HH.data)+1, ] <- c("Max child age",max_Ch_age_P,max_Ch_age_E)
+HH.data[nrow(HH.data)+1, ] <- c("Gender",G_P,G_E)
+
+
+
 #HH info
 write.xlsx((HH.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="Household Summary",row.names=FALSE)
+
+#chem info
+write.xlsx((chem.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="Chem info",append = TRUE,row.names = FALSE)
+
 
 #PUC info
 write.xlsx((PUC.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="PUC_use",append = TRUE,row.names = FALSE)
@@ -477,4 +528,6 @@ write.xlsx((PUC.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx"
 #H&P info
 write.xlsx((HP.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="H&P",append = TRUE,row.names = FALSE)
 
-#
+#QA
+write.xlsx((QA.data),file="C:/Users/39492/Desktop/HEM S2D R/summary sheet.xlsx",sheetName="QA sheet",append = TRUE,row.names = FALSE)
+
