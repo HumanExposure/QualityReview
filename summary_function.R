@@ -440,7 +440,7 @@ for (a in 1:length(cf$puc.list)){
       }
       if (HHsub$sex[1]=="F"&&HHsub$age[1]>12){
         p_puc_f12 <- p_puc_f12+1
-      }
+      } 
       if (HHsub$age[1]<=12){
         p_puc_ch <- p_puc_ch+1
       }
