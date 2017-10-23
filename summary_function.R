@@ -1,6 +1,10 @@
-
-#Copy and paste whole file into a new R markdown file
 ---
+  output:
+  pdf_document: default
+html_document: default
+---
+  #Copy and paste whole file into a new R markdown file
+  ---
   title: "RMD_sumfxn"
 author: "George"
 date: "October 16, 2017"
@@ -23,6 +27,7 @@ library(foreach)
 library(doParallel)
 library(reshape2)
 library(xlsx)
+library(pander)
 
 #setting working directory
 wd <- "C:/Users/39492/Desktop/HEM S2D R" 
@@ -308,12 +313,12 @@ HHno <- cf$last.house - cf$first.house + 1 #no of households in this run
 
 
 #data frames to hold data: 
-HH.data            <- data.frame("Info"=character(),"Primary Only"=integer(),"Everybody"=integer(),stringsAsFactors = FALSE)
+HH.data            <- data.frame("Info"=character(),"PrimaryHH"=integer(),"AllHH"=integer(),stringsAsFactors = FALSE)
 chem.data          <- data.frame("DTXSID"=character(),"Chemical Name"=character(),"CAS"=integer(),stringsAsFactors = FALSE)
-PUC.data           <- data.frame("PUC"=character(),"PUC Name"=character(),"HH_use_PUC"=integer(),"HH_don't_use_PUC"=integer(),"Prim_use_PUC_others_do"=integer(),"Prim_don't_use_PUC_others_do"=integer(),"Code"=character(), stringsAsFactors = FALSE)
-HP.data            <- data.frame("PUC"=character(),"Description"=character(),"E_Prev_M"=integer(),"S_Prev_M"=integer(),"E_Prev_F"=integer(),"S_Prev_F"=integer(),"E_Prev_Ch"=integer(),"S_Prev_Ch"=integer(),"E_Freq"=integer(),"S_Freq"=integer(),"E_Mass"=integer(),"S_Mass"=integer(), stringsAsFactors = FALSE)
+PUC.data           <- data.frame("PUC"=character(),"PUC Name"=character(),"PUC_U"=integer(),"PUC_not"=integer(),"P_O_PUC"=integer(),"NP_O_PUC"=integer(),"Code"=character(), stringsAsFactors = FALSE)
+HP.data            <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=integer(),"S_P_M"=integer(),"E_P_F"=integer(),"S_P_F"=integer(),"E_P_Ch"=integer(),"S_P_Ch"=integer(),"E_Freq"=integer(),"S_Freq"=integer(),"E_Mass"=integer(),"S_Mass"=integer(), stringsAsFactors = FALSE)
 QA.data            <- data.frame("Info"=character(),"Primary Only"=integer(),"EVERYBODY"=integer(),stringsAsFactors = FALSE)
-HP_all.data        <- data.frame("PUC"=character(),"Description"=character(),"E_Prev_M"=integer(),"A_Prev_M"=integer(),"E_Prev_F"=integer(),"A_Prev_F"=integer(),"E_Prev_Ch"=integer(),"A_Prev_Ch"=integer(),"E_Freq"=integer(),"A_Freq"=integer(),"E_Mass"=integer(),"A_Mass"=integer(), stringsAsFactors = FALSE)
+HP_all.data        <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=integer(),"A_P_M"=integer(),"E_P_F"=integer(),"A_P_F"=integer(),"E_P_Ch"=integer(),"A_P_Ch"=integer(),"E_Freq"=integer(),"A_Freq"=integer(),"E_Mass"=integer(),"A_Mass"=integer(), stringsAsFactors = FALSE)
 
 #Chemical summary table:
 #accumulating chemical properties data and writing to data frame
@@ -332,9 +337,9 @@ popsub <- pop[cf$first.house:cf$last.house, ]
 #this is looking at genders of primary individuals only
 if ('Male' %in% popsub$gender && 'Female' %in% popsub$gender){
   G_P <- "M and F"
-}else if (('Male' %in% popsub$gender&&!"Female"%in%popsub$gender)){#add female not in
+}else if (('Male' %in% popsub$gender&&!"Female"%in%popsub$gender)){
   G_P <- "M only"
-}else if (('Female' %in% popsub$gender&&!"Male"%in%popsub$gender)){#add male not in
+}else if (('Female' %in% popsub$gender&&!"Male"%in%popsub$gender)){
   G_P <- "F only"
 }
 #this is looking at genders of everyone
@@ -513,6 +518,7 @@ for (a in 1:length(unlist(cf$puc.list))){#for each PUC included
   prev_puc_f12 <- p_puc_f12/pop_f12
   prev_puc_ch  <- p_puc_ch/pop_ch
   
+  
   #write H&P data to data frame
   HP.data[nrow(HP.data)+1, ] <- c(apuc,hp$source_description,hp$Prev_M,prev_puc_m12,hp$Prev_F,prev_puc_f12,hp$Prev_child,prev_puc_ch,hp$Freq,actual_freq_puc,hp$Mass,actual_mass_puc)
   
@@ -554,7 +560,8 @@ HH.data[nrow(HH.data)+1, ] <- c("Gender",G_P,G_E)
 
 #write data frames to file
 #HH info
-print(knitr::kable(HH.data))
+
+print(knitr::kable(HH.data,caption = "HH info"))
 ```
 
 
@@ -562,7 +569,8 @@ print(knitr::kable(HH.data))
 ```{r echo=FALSE, results='asis'}
 
 #chem info
-print(knitr::kable(chem.data))
+
+print(knitr::kable(chem.data, caption = "Chem info"))
 ```
 
 
@@ -570,23 +578,23 @@ print(knitr::kable(chem.data))
 ```{r echo=FALSE, results='asis'}
 
 #PUC info
-print(knitr::kable(PUC.data))
+print(knitr::kable(PUC.data,caption = "PUC data"))
 ```
 
 
 ###Habits and practices summary (for households in this run)
 ```{r echo=FALSE, results='asis'}
+#options(scipen=999)
 
-#H&P info
-print(knitr::kable(HP.data))
+panderOptions('digits',2)#attempt to fomat decimal places
+(pander(HP.data,caption = "H&P data"))
 ```
 
 
-###This is for QA purposes only: to be removed
 ```{r echo=FALSE, results='asis'}
 
-#QA
-print(knitr::kable(QA.data))
+#for QA purposes
+#print(knitr::kable(QA.data,caption = "QA data"))
 ```
 
 ```{r echo=FALSE, results='asis'}
@@ -934,15 +942,16 @@ for (a in 1:length(unlist(cf$chem.list))){
   #delete dummy data
   OPT_f_out.data <- OPT_f_out.data[-c(1),]
   
-  cat("\n\n\\pagebreak\n") #separating output
-  print(paste0("Summary for chemical ID: ",achem))
-  print(knitr::kable(OPT_f_out.data))    
-  cat("\n\n\\pagebreak\n") #separating output
+  cat("\n") #separating output
+  print(knitr::kable(OPT_f_out.data, row.names = FALSE,caption = paste0("Summary and plot for chemical ID: ",achem)))#, digits=c(2,2,2,2,2),col.names = c("a","b","d","e","f")))  #format decinmal points
+  cat("\n") #separating output
   
   if (od$output.plots=="yes"){
-    
     plot(OPT_f_out.data$Pop.avg.of.annual.mean...all.pop)
   }
+  cat("\n\n\\pagebreak\n") #separating output
+  
+  
 }
 
 ```
