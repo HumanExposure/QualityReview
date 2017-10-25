@@ -1,17 +1,11 @@
 ---
-  output:
+  title: "HEM S2D Summary"
+output:
   pdf_document: default
 html_document: default
 ---
-  #Copy and paste whole file into a new R markdown file
-  ---
-  title: "RMD_sumfxn"
-author: "George"
-date: "October 16, 2017"
-output: html_document
----
-  #HEM S2D Summary function
   ```{r include=FALSE, echo=FALSE, results='asis'}
+#Copy and paste whole file into a new R markdown file
 
 #HEM Summary Function
 
@@ -30,7 +24,7 @@ library(xlsx)
 library(pander)
 
 #setting working directory
-wd <- "C:/Users/39492/Desktop/HEM S2D R" 
+wd <- "C:/Users/39492/Desktop/HEM update_102517/HEM summary function" 
 setwd(wd)
 
 #name of control file for optional output
@@ -404,6 +398,8 @@ for (a in 1:length(unlist(cf$puc.list))){#for each PUC included
   p_puc_f12 <- 0.0 #counter for prevalence of use of puc in f12 demographic
   p_puc_ch <- 0.0 # counter for prevalence of use of puc in ch demographic
   
+  
+  
   for (hn in (cf$first.house):(cf$last.house)){ #for each household included in the run
     
     pd <- popsub[popsub$house==hn]
@@ -518,6 +514,9 @@ for (a in 1:length(unlist(cf$puc.list))){#for each PUC included
   prev_puc_f12 <- p_puc_f12/pop_f12
   prev_puc_ch  <- p_puc_ch/pop_ch
   
+  #format decimal points
+  format(round(prev_puc_f12, 2), nsmall = 2)##attempt to format
+  
   
   #write H&P data to data frame
   HP.data[nrow(HP.data)+1, ] <- c(apuc,hp$source_description,hp$Prev_M,prev_puc_m12,hp$Prev_F,prev_puc_f12,hp$Prev_child,prev_puc_ch,hp$Freq,actual_freq_puc,hp$Mass,actual_mass_puc)
@@ -552,42 +551,42 @@ HH.data[nrow(HH.data)+1, ] <- c("Max female (>12yrs) age",max_F_age_P,max_F_age_
 HH.data[nrow(HH.data)+1, ] <- c("Min child (<=12yrs) age",min_Ch_age_P,min_Ch_age_E)
 HH.data[nrow(HH.data)+1, ] <- c("Max child (<=12yrs) age",max_Ch_age_P,max_Ch_age_E)
 HH.data[nrow(HH.data)+1, ] <- c("Gender",G_P,G_E)
+
+#format decimal places
+options(scipen=999)
 ```
 
 
-###Household summary
 ```{r echo=FALSE, results='asis'}
 
 #write data frames to file
 #HH info
 
-print(knitr::kable(HH.data,caption = "HH info"))
+print(knitr::kable(HH.data,caption = "Household summary"))
 ```
 
 
-###Chemical summary
 ```{r echo=FALSE, results='asis'}
 
 #chem info
 
-print(knitr::kable(chem.data, caption = "Chem info"))
+print(knitr::kable(chem.data, caption = "Chemical summary"))
 ```
 
 
-###PUC summary
 ```{r echo=FALSE, results='asis'}
 
 #PUC info
-print(knitr::kable(PUC.data,caption = "PUC data"))
+print(knitr::kable(PUC.data,caption = "PUC summary"))
 ```
 
 
-###Habits and practices summary (for households in this run)
 ```{r echo=FALSE, results='asis'}
 #options(scipen=999)
 
 panderOptions('digits',2)#attempt to fomat decimal places
-(pander(HP.data,caption = "H&P data"))
+(pander(HP.data,caption = "H&P summary (HHs in run)"))
+cat("\n\n\\pagebreak\n") #separating output
 ```
 
 
@@ -681,7 +680,7 @@ if (od$run.all.households=="yes"){
 ```
 
 
-###Optional data summary
+
 ```{r echo=FALSE, results='asis'}
 
 #Optional data start
@@ -690,7 +689,7 @@ if (od$run.all.households=="yes"){
 for (a in 1:length(unlist(cf$chem.list))){ 
   
   #Data frame to hold data
-  OPT.data <- data.frame("Rows"=character(),"Age group"=character(),"Pop avg of annual mean - all pop"=integer(),"Pop avg of annual mean - users only"=integer(),"Pop avg of max dialy dose"=integer(),stringsAsFactors = FALSE)
+  OPT.data <- data.frame("Rows"=character(),"Age group"=character(),"AvgMean AllPop"=integer(),"AvgMean Users"=integer(),"AvgMaxDaily"=integer(),stringsAsFactors = FALSE)
   
   achem <- unlist(cf$chem.list)[a]
   
@@ -845,19 +844,19 @@ for (a in 1:length(unlist(cf$chem.list))){
   }
   
   #Store data in data frame
-  OPT.data[nrow(OPT.data)+1, ] <- c("total.absorbed.dose",od$age.groups.of.interest,all_tot_ad/HHno,all_tot_ad/HH_c_use,max_tot_ad/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("dermal.absorbed.dose.total",od$age.groups.of.interest,all_der_tot/HHno,all_der_tot/HH_c_use,max_der_tot/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("dermal.absorbed.dose.direct",od$age.groups.of.interest,all_der_dir/HHno,all_der_dir/HH_c_use,max_der_dir/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("dermal.absorbed.dose.indirect",od$age.groups.of.interest,all_der_ind/HHno,all_der_ind/HH_c_use,max_der_ind/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("inhalation.absorbed.dose.total",od$age.groups.of.interest,all_inh_tot/HHno,all_inh_tot/HH_c_use,max_inh_tot/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("inhalation.absorbed.dose.direct",od$age.groups.of.interest,all_inh_dir/HHno,all_inh_dir/HH_c_use,max_inh_dir/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("inhalation.absorbed.dose.indirect",od$age.groups.of.interest,all_inh_ind/HHno,all_inh_ind/HH_c_use,max_inh_ind/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("ingestion.absorbed.dose.total",od$age.groups.of.interest,all_ing_tot/HHno,all_ing_tot/HH_c_use,max_ing_tot)
-  OPT.data[nrow(OPT.data)+1, ] <- c("ingestion.absorbed.dose.direct",od$age.groups.of.interest,all_ing_dir/HHno,all_ing_dir/HH_c_use,max_ing_dir)
-  OPT.data[nrow(OPT.data)+1, ] <- c("ingestion.absorbed.dose.indirect",od$age.groups.of.interest,all_ing_ind/HHno,all_ing_ind/HH_c_use,max_ing_ind)
-  OPT.data[nrow(OPT.data)+1, ] <- c("mass.down.the.drain",od$age.groups.of.interest,all_mass_drain/HHno,all_mass_drain/HH_c_use,max_mass_drain)
-  OPT.data[nrow(OPT.data)+1, ] <- c("mass.out.the.window",od$age.groups.of.interest,all_mass_window/HHno,all_mass_window/HH_c_use,max_mass_window)
-  OPT.data[nrow(OPT.data)+1, ] <- c("mass.in.solid.waste",od$age.groups.of.interest,all_mass_waste/HHno,all_mass_waste/HH_c_use,max_mass_waste)
+  OPT.data[nrow(OPT.data)+1, ] <- c("tot.abs.dose",od$age.groups.of.interest,all_tot_ad/HHno,all_tot_ad/HH_c_use,max_tot_ad/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("der.abs.dose.tot",od$age.groups.of.interest,all_der_tot/HHno,all_der_tot/HH_c_use,max_der_tot/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("der.abs.dose.dir",od$age.groups.of.interest,all_der_dir/HHno,all_der_dir/HH_c_use,max_der_dir/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("der.abs.dose.ind",od$age.groups.of.interest,all_der_ind/HHno,all_der_ind/HH_c_use,max_der_ind/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("inh.abs.dose.tot",od$age.groups.of.interest,all_inh_tot/HHno,all_inh_tot/HH_c_use,max_inh_tot/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("inh.abs.dose.dir",od$age.groups.of.interest,all_inh_dir/HHno,all_inh_dir/HH_c_use,max_inh_dir/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("inh.abs.dose.ind",od$age.groups.of.interest,all_inh_ind/HHno,all_inh_ind/HH_c_use,max_inh_ind/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("ing.abs.dose.tot",od$age.groups.of.interest,all_ing_tot/HHno,all_ing_tot/HH_c_use,max_ing_tot)
+  OPT.data[nrow(OPT.data)+1, ] <- c("ing.abs.dose.dir",od$age.groups.of.interest,all_ing_dir/HHno,all_ing_dir/HH_c_use,max_ing_dir)
+  OPT.data[nrow(OPT.data)+1, ] <- c("ing.abs.dose.ind",od$age.groups.of.interest,all_ing_ind/HHno,all_ing_ind/HH_c_use,max_ing_ind)
+  OPT.data[nrow(OPT.data)+1, ] <- c("mass.down.drain",od$age.groups.of.interest,all_mass_drain/HHno,all_mass_drain/HH_c_use,max_mass_drain)
+  OPT.data[nrow(OPT.data)+1, ] <- c("mass.out.window",od$age.groups.of.interest,all_mass_window/HHno,all_mass_window/HH_c_use,max_mass_window)
+  OPT.data[nrow(OPT.data)+1, ] <- c("mass.solid.waste",od$age.groups.of.interest,all_mass_waste/HHno,all_mass_waste/HH_c_use,max_mass_waste)
   
   
   OPT.data <- as.data.table(OPT.data)
@@ -943,13 +942,16 @@ for (a in 1:length(unlist(cf$chem.list))){
   OPT_f_out.data <- OPT_f_out.data[-c(1),]
   
   cat("\n") #separating output
-  print(knitr::kable(OPT_f_out.data, row.names = FALSE,caption = paste0("Summary and plot for chemical ID: ",achem)))#, digits=c(2,2,2,2,2),col.names = c("a","b","d","e","f")))  #format decinmal points
+  print(knitr::kable(OPT_f_out.data, row.names = FALSE,caption = paste0("Summary Table for chemical ID: ",achem)))#, digits=c(2,2,2,2,2),col.names = c("a","b","d","e","f")))  #format decinmal points
   cat("\n") #separating output
   
   if (od$output.plots=="yes"){
-    plot(OPT_f_out.data$Pop.avg.of.annual.mean...all.pop)
+    x_axis <- OPT_f_out.data$AvgMean.AllPop
+    y_axis <- OPT_f_out.data$AvgMean.Users
+    plot(x_axis,y_axis,xlab = "AvgMean.AllPop", ylab = "AvgMean.Users",main = paste0("Plot for chemical ID: ",achem))
+    cat("\n\n\\pagebreak\n") #separating output
+    
   }
-  cat("\n\n\\pagebreak\n") #separating output
   
   
 }
