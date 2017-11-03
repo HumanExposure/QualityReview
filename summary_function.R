@@ -24,7 +24,7 @@ library(xlsx)
 library(pander)
 
 #setting working directory
-wd <- "C:/Users/39492/Desktop/HEM update_102517/HEM summary function" 
+wd <- "C:/Users/39492/Desktop/ongoing projects/HEM archive/HEM update/HEM summary function" 
 setwd(wd)
 
 #name of control file for optional output
@@ -540,7 +540,7 @@ for (a in 1:length(unlist(cf$puc.list))){#for each PUC included
 }
 
 #write household data to data frame
-HH.data[nrow(HH.data)+1, ] <- c("No. of househods",cf$last.house-cf$first.house+1,"NA")
+HH.data[nrow(HH.data)+1, ] <- c("No. of households",cf$last.house-cf$first.house+1,"NA")
 HH.data[nrow(HH.data)+1, ] <- c("Min age",min_age_P,min_age_E)
 HH.data[nrow(HH.data)+1, ] <- c("Max age",max_age_P,max_age_E)
 HH.data[nrow(HH.data)+1, ] <- c("Max age - Min age",max_age_P-min_age_P,max_age_E-min_age_E)
