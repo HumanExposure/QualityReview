@@ -1,12 +1,12 @@
 ---
   title: "HEM S2D Summary"
 output:
-  pdf_document: default
-html_document: default
+  html_document: default
+pdf_document: default
 ---
   ```{r include=FALSE, echo=FALSE, results='asis'}
 #Copy and paste whole file into a new R markdown file
-
+#11/4/2017 - 2:59pm
 #HEM Summary Function
 
 #libraries
@@ -24,7 +24,7 @@ library(xlsx)
 library(pander)
 
 #setting working directory
-wd <- "C:/Users/39492/Desktop/ongoing projects/HEM archive/HEM update/HEM summary function" 
+wd <- "C:/Users/39492/Desktop/temp HEM testing folder/update to common__HEM summary function" 
 setwd(wd)
 
 #name of control file for optional output
@@ -61,7 +61,6 @@ read.control.file = function(control.file) {
   puc.seed       <- x$setting[x$key=="puc.seed"]
   chem.seed      <- x$setting[x$key=="chem.seed"]
   init.seed      <- x$setting[x$key=="init.seed"]
-  hab.prac       <- x$setting[x$key=="hab.prac"]
   if (length(init.seed)>0) { 
     house.seed   <- init.seed
     puc.seed     <- init.seed
@@ -94,15 +93,19 @@ read.control.file = function(control.file) {
   save.r.objects    <- substr(x$setting[x$key=="save.r.objects"],1,1)
   if (length(save.r.objects)==0) save.r.objects <- "n"  # default is not to save
   out <- paste0("output/S2D/",run.name)
-  g <- as.data.table(list(chem.list,hab.prac,puc.list,fug.file,chem.file,chem.frac.file,puc.type.file,compart.file,puc.met.file,
+  g <- as.data.table(list(chem.list,puc.list,fug.file,chem.file,chem.frac.file,puc.type.file,compart.file,puc.met.file,
                           skin.area.file,removal.file,vent.file,diary.prefix,run.name,n.houses,init.seed,prog,parallel,
                           puc.offset,first.house,last.house,comp.method,save.r.objects,house.seed,puc.seed,chem.seed,out))
-  setnames(g,c("chem.list","hab.prac","puc.list","fug.file","chem.file","chem.frac.file","puc.type.file","compart.file",
+  setnames(g,c("chem.list","puc.list","fug.file","chem.file","chem.frac.file","puc.type.file","compart.file",
                "puc.met.file","skin.area.file","removal.file","vent.file","diary.prefix","run.name","n.houses",
                "init.seed","prog","parallel","puc.offset","first.house","last.house","comp.method","save.r.objects",
                "house.seed","puc.seed","chem.seed","out"))
   return(g)
 }
+
+#read the control file
+cf <- read.control.file(control.file)
+
 
 #read optional file reads the settings for the optional output
 read.optional.file = function(optional.file){
@@ -133,14 +136,22 @@ read.optional.file = function(optional.file){
   population.average.of.annual.mean.for.all.population <- x$setting[x$key=="population.average.of.annual.mean.for.all.population"] 
   population.average.of.annual.mean.for.users.only     <- x$setting[x$key=="population.average.of.annual.mean.for.users.only"] 
   population.average.of.maximum.daily.dose             <- x$setting[x$key=="population.average.of.maximum.daily.dose"]
+  hab.prac.file                                        <- x$setting[x$key=="hab.prac.file"]
+  s2d.output.folder.location                           <- x$setting[x$key=="s2d.output.folder.location"]
+  abm.folder.location                                  <- x$setting[x$key=="abm.folder.location"]
+  
   
   g <- as.data.table(list(run.all.housholds,output.plots,total.absorbed.dose,dermal.absorbed.dose.total,dermal.absorbed.dose.direct,dermal.absorbed.dose.indirect,inhalation.absorbed.dose.total,inhalation.absorbed.dose.direct,inhalation.absorbed.dose.indirect,ingestion.absorbed.dose.total,ingestion.absorbed.dose.direct,
-                          ingestion.absorbed.dose.indirect,mass.down.the.drain,mass.out.the.window,mass.in.solid.waste,age.groups.of.interest,population.average.of.annual.mean.for.all.population,population.average.of.annual.mean.for.users.only,population.average.of.maximum.daily.dose))
+                          ingestion.absorbed.dose.indirect,mass.down.the.drain,mass.out.the.window,mass.in.solid.waste,age.groups.of.interest,population.average.of.annual.mean.for.all.population,population.average.of.annual.mean.for.users.only,population.average.of.maximum.daily.dose,hab.prac.file,s2d.output.folder.location,abm.folder.location))
   setnames(g,c("run.all.households","output.plots","total.absorbed.dose","dermal.absorbed.dose.total","dermal.absorbed.dose.direct","dermal.absorbed.dose.indirect","inhalation.absorbed.dose.total","inhalation.absorbed.dose.direct","inhalation.absorbed.dose.indirect","ingestion.absorbed.dose.total","ingestion.absorbed.dose.direct",
                "ingestion.absorbed.dose.indirect","mass.down.the.drain","mass.out.the.window","mass.in.solid.waste","age.groups.of.interest","population.average.of.annual.mean.for.all.population","population.average.of.annual.mean.for.users.only",
-               "population.average.of.maximum.daily.dose"))
+               "population.average.of.maximum.daily.dose","hab.prac.file","s2d.output.folder.location","abm.folder.location"))
   return(g)
 }
+
+#read the optional control file
+od <- read.optional.file(optional.file)
+
 
 # trimzero removes leading zeroes from CAS numbers
 trimzero = function(x) {
@@ -205,7 +216,7 @@ read.diary = function(diary.prefix,run.name,house.num,persons) {
   if (is.null(diary.prefix)) diary.prefix <- g$diary.prefix
   if (is.null(run.name))         run.name <- g$run.name
   format <- c("Clusters"="Character","Appliances"="Character","Impacted_by"="character")
-  diary <- fread(paste0("input/abm/", diary.prefix, house.num, ".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"),colClasses=format)
+  diary <- fread(paste0(od$abm.folder.location, diary.prefix, house.num, ".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"),colClasses=format)
   setnames(diary,tolower(names(diary)))
   if(exists("person_household_index",diary))              setnames(diary,"person_household_index","p")
   if(exists("day_of_the_year",diary))                     setnames(diary,"day_of_the_year","daynum")
@@ -289,17 +300,22 @@ read.puc.use = function(hab.prac,puc.list){
   return(x)
 }
 
-#read.s2d.annual reads the s2d annual files data
+#read.s2d.annual reads the s2d annual files
 read.s2d.annual = function(house_number,chemical) {
-  annual <- fread(paste0("S2D/test0/Annual/", "House_", house_number, ".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"))
+  annual <- fread(paste0(od$s2d.output.folder.location,"Annual/", "House_", house_number, ".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"))
   annual <- annual[annual$dtxsid==chemical]
   return (annual)
 }
 
-#variables to hold files
-od <- read.optional.file(optional.file)
+#read.prod.chem reads the s2d prod_chem files
+read.prod.chem = function(house_num,chem,puc){
+  prodchem <- fread(paste0(od$s2d.output.folder.location,"Prod_chem/","Prod_chem_",house_num,".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"))
+  prodchem <- prodchem[prodchem$puc==puc]
+  prodchem <- prodchem[prodchem$chemical==chem]
+  return(prodchem)
+} 
 
-cf <- read.control.file(control.file)
+#variables to hold files
 
 pop <- read.pophouse(cf$run.name)
 
@@ -374,7 +390,7 @@ min_Ch_age_E <- 100000
 for (a in 1:length(unlist(cf$puc.list))){#for each PUC included
   
   puc <- read.puc.types(cf$puc.type.file,unlist(cf$puc.list)[a])#read PUC file
-  hp <- read.puc.use(cf$hab.prac,unlist(cf$puc.list)[a])#read habits and prac file
+  hp <- read.puc.use(od$hab.prac.file,unlist(cf$puc.list)[a])#read habits and prac file
   
   #variables to hold PUC data
   apuc <- unlist(cf$puc.list)[a]#this PUC
@@ -604,7 +620,7 @@ if (od$run.all.households=="yes"){
   for (a in 1:length(unlist(cf$puc.list))){
     
     puc <- read.puc.types(cf$puc.type.file,unlist(cf$puc.list)[a])
-    hp <- read.puc.use(cf$hab.prac,unlist(cf$puc.list)[a])
+    hp <- read.puc.use(od$hab.prac.file,unlist(cf$puc.list)[a])
     apuc <- unlist(cf$puc.list)[a]#this PUC
     
     pop_m12 <- 0.0 #counter for the population of males above 12 yrs
