@@ -6,10 +6,11 @@ pdf_document: default
 ---
   ```{r include=FALSE, echo=FALSE, results='asis'}
 #Copy and paste whole file into a new R markdown file
-#11/4/2017 - 2:59pm
+#11/10/2017 - 11:08pm
 #HEM Summary Function
 
 #libraries
+library(latticeExtra)
 library(data.table)
 library(stringr)
 library(plyr)
@@ -300,12 +301,20 @@ read.puc.use = function(hab.prac,puc.list){
   return(x)
 }
 
-#read.s2d.annual reads the s2d annual files
+#read.s2d.annual reads data contained in the files in the s2d annual folder
 read.s2d.annual = function(house_number,chemical) {
   annual <- fread(paste0(od$s2d.output.folder.location,"Annual/", "House_", house_number, ".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"))
   annual <- annual[annual$dtxsid==chemical]
   return (annual)
 }
+
+#read.s2d.daily reads data contained in the files in the s2d daily folder
+read.s2d.daily = function(house_number,chemical){
+  daily <- fread(paste0(od$s2d.output.folder.location,"Daily/","Daily_",house_number,".csv"),stringsAsFactors = FALSE,na.strings = c("","NA"))
+  daily <- daily[daily$dtxsid==chemical]
+  return(daily)
+}
+
 
 #read.prod.chem reads the s2d prod_chem files
 read.prod.chem = function(house_num,chem,puc){
@@ -326,9 +335,12 @@ HHno <- cf$last.house - cf$first.house + 1 #no of households in this run
 HH.data            <- data.frame("Info"=character(),"PrimaryHH"=integer(),"AllHH"=integer(),stringsAsFactors = FALSE)
 chem.data          <- data.frame("DTXSID"=character(),"Chemical Name"=character(),"CAS"=integer(),stringsAsFactors = FALSE)
 PUC.data           <- data.frame("PUC"=character(),"PUC Name"=character(),"PUC_U"=integer(),"PUC_not"=integer(),"P_O_PUC"=integer(),"NP_O_PUC"=integer(),"Code"=character(), stringsAsFactors = FALSE)
-HP.data            <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=integer(),"S_P_M"=integer(),"E_P_F"=integer(),"S_P_F"=integer(),"E_P_Ch"=integer(),"S_P_Ch"=integer(),"E_Freq"=integer(),"S_Freq"=integer(),"E_Mass"=integer(),"S_Mass"=integer(), stringsAsFactors = FALSE)
+HP.data            <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=numeric(),"S_P_M"=numeric(),"E_P_F"=numeric(),"S_P_F"=numeric(),"E_P_Ch"=numeric(),"S_P_Ch"=numeric(),"E_Freq"=numeric(),"S_Freq"=numeric(),"E_Mass"=numeric(),"S_Mass"=numeric(), stringsAsFactors = FALSE)
 QA.data            <- data.frame("Info"=character(),"Primary Only"=integer(),"EVERYBODY"=integer(),stringsAsFactors = FALSE)
-HP_all.data        <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=integer(),"A_P_M"=integer(),"E_P_F"=integer(),"A_P_F"=integer(),"E_P_Ch"=integer(),"A_P_Ch"=integer(),"E_Freq"=integer(),"A_Freq"=integer(),"E_Mass"=integer(),"A_Mass"=integer(), stringsAsFactors = FALSE)
+HP_all.data        <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=numeric(),"A_P_M"=numeric(),"E_P_F"=numeric(),"A_P_F"=numeric(),"E_P_Ch"=numeric(),"A_P_Ch"=numeric(),"E_Freq"=numeric(),"A_Freq"=numeric(),"E_Mass"=numeric(),"A_Mass"=numeric(), stringsAsFactors = FALSE)
+PC.data            <- data.frame("PUC"=character(),"Chemical"=character(),"PUC_Prev"=numeric(),"Chem_Prev"=numeric(),"Min_wf"=numeric(),"max_wf"=numeric(),stringsAsFactors = FALSE)
+PT.data            <- data.frame("chemical"= character(),"HH"=integer(),"Dermal"=numeric(),"Inhalation"=numeric(),"Ingestion"=numeric(),stringsAsFactors = FALSE)
+PD.data            <- data.frame("chemical"= character(),"HH"=integer(),"Dermal"=numeric(),"Inhalation"=numeric(),"Ingestion"=numeric(),stringsAsFactors = FALSE)
 
 #Chemical summary table:
 #accumulating chemical properties data and writing to data frame
@@ -479,7 +491,6 @@ for (a in 1:length(unlist(cf$puc.list))){#for each PUC included
       P_O <- P_O +1
     }
     
-    
     #Calculate H&P data in this household
     HH <- read.diary(cf$diary.prefix,cf$run.name,hn,pp)#same as abm; keeping the variable becasue I merged two functions after writing them separately
     
@@ -568,9 +579,68 @@ HH.data[nrow(HH.data)+1, ] <- c("Min child (<=12yrs) age",min_Ch_age_P,min_Ch_ag
 HH.data[nrow(HH.data)+1, ] <- c("Max child (<=12yrs) age",max_Ch_age_P,max_Ch_age_E)
 HH.data[nrow(HH.data)+1, ] <- c("Gender",G_P,G_E)
 
-#format decimal places
+#attempt to format decimal places
 options(scipen=999)
+
+
+#prod_chem table start
+relevHHs <- list() #list of relevant HH numbers
+prod_files <- list.files(path = paste0(od$s2d.output.folder.location,"Prod_chem"))#list of files in the Prod_chem folder
+for (f in 1:length(prod_files)){
+  
+  #extract household number (n) from file name "Prod_chem_n.csv"
+  y <- regexpr("csv",prod_files[f],fixed = TRUE)
+  n <- as.numeric(substr(prod_files[f],11,y-2))
+  
+  if (n<=cf$last.house&&n>=cf$first.house){
+    relevHHs <- c(relevHHs,n)
+  }
+}
+
+for (PUC in unlist(cf$puc.list)){
+  HH_u_PUC <- 0 #counter for primaries that use this PUC
+  
+  
+  for (n in relevHHs){
+    
+    pd <- popsub[popsub$house==n]
+    pp <- list.persons(pd)
+    
+    abm <- read.diary(cf$diary.prefix,cf$run.name,n,pp) #read data in this household
+    prim <- abm[abm$primary==1]
+    
+    if (is.element(PUC,prim$source.id)){
+      HH_u_PUC <- HH_u_PUC+1
+    }
+  }
+  
+  for (chemical in unlist(cf$chem.list)){
+    HH_PUC_Chem <- 0#counter for HH in which the primary used this PUC and the PUC contained this chemical
+    Max_wf <- 0 #maximum weight fraction
+    Min_wf <- 1000 #minimum weight fraction
+    
+    for (q in relevHHs){
+      prod_f <- read.prod.chem(q,chemical,PUC)
+      
+      if (nrow(prod_f)>0){
+        HH_PUC_Chem <- HH_PUC_Chem+1
+        
+        Max_wf <- max(Max_wf,max(prod_f$mass.fraction))
+        Min_wf <- min(Min_wf,min(prod_f$mass.fraction))
+      }
+    }
+    if (HH_PUC_Chem==0){
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemical,HH_u_PUC,HH_PUC_Chem,0,0)
+    }else{
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemical,HH_u_PUC,HH_PUC_Chem,Min_wf,Max_wf)
+    }
+  }
+  
+}
+#----
+
 ```
+
 
 
 ```{r echo=FALSE, results='asis'}
@@ -603,6 +673,11 @@ print(knitr::kable(PUC.data,caption = "PUC summary"))
 panderOptions('digits',2)#attempt to fomat decimal places
 (pander(HP.data,caption = "H&P summary (HHs in run)"))
 cat("\n\n\\pagebreak\n") #separating output
+```
+
+```{r echo=FALSE, results='asis'}
+
+print(knitr::kable(PC.data,caption = "Prod Chem table"))
 ```
 
 
@@ -697,6 +772,10 @@ if (od$run.all.households=="yes"){
 
 
 
+
+
+
+
 ```{r echo=FALSE, results='asis'}
 
 #Optional data start
@@ -768,7 +847,7 @@ for (a in 1:length(unlist(cf$chem.list))){
   #list of relevant households
   relevHH <- list()
   
-  lf <- list.files(path = paste0(wd,"/S2D/test0/Annual"))#list of files in the annual S2D folder
+  lf <- list.files(path = paste0(od$s2d.output.folder.location,"Annual"))#list of files in the annual S2D folder
   for (i in 1:length(lf)){
     
     #extract the household number (n) from "House_n.csv"
@@ -857,6 +936,30 @@ for (a in 1:length(unlist(cf$chem.list))){
     #mass in solid waste
     all_mass_waste <- all_mass_waste + chem_annual$waste
     max_mass_waste <- "NA"
+    
+    
+    #write to annual plot data frame
+    PT.data[nrow(PT.data)+1, ] <- c(achem,p,chem_annual$dir.derm.abs + chem_annual$ind.derm.abs,chem_annual$dir.inhal.abs + chem_annual$ind.inhal.abs, chem_annual$dir.ingest.abs + chem_annual$ind.ingest.abs)
+    
+    
+    #read daily files
+    daily.file <- read.s2d.daily(p,achem)
+    
+    #write to max daily plot data frame
+    if (nrow(daily.file)==0){
+      PD.data[nrow(PD.data)+1, ] <- c(achem,p,0,0,0)
+    }else{
+      
+      max_der_tot_abs <- max(daily.file$dir.derm.abs) + max(daily.file$ind.derm.abs)
+      max_inh_tot_abs <- max(daily.file$dir.inhal.abs) + max(daily.file$ind.inhal.abs)
+      max_ing_tot_abs <- max(daily.file$dir.ingest.abs) + max(daily.file$ind.ingest.abs)
+      
+      PD.data[nrow(PD.data)+1, ] <- c(achem,p,max_der_tot_abs,max_inh_tot_abs,max_ing_tot_abs)
+    }
+    
+    
+    
+    
   }
   
   #Store data in data frame
@@ -962,10 +1065,29 @@ for (a in 1:length(unlist(cf$chem.list))){
   cat("\n") #separating output
   
   if (od$output.plots=="yes"){
-    x_axis <- OPT_f_out.data$AvgMean.AllPop
-    y_axis <- OPT_f_out.data$AvgMean.Users
-    plot(x_axis,y_axis,xlab = "AvgMean.AllPop", ylab = "AvgMean.Users",main = paste0("Plot for chemical ID: ",achem))
-    cat("\n\n\\pagebreak\n") #separating output
+    PTC.data <- PT.data[PT.data$chemical==achem,] 
+    
+    xlow1 <- 0 #lowest x axis limit
+    xhi1  <-  as.numeric(max(as.numeric(PTC.data$Ingestion),as.numeric(PTC.data$Inhalation),as.numeric(PTC.data$Dermal)))#highest x axis limit  
+    #curve(pnorm(OPT_f_out.data$AvgMean.AllPop))
+    print(knitr::kable(PTC.data,caption = "table for annual exp plot"))
+    cat("\n") #separating output
+    plot(ecdf(as.numeric(PTC.data$Ingestion)),col="red",ylab = "Cumulative Proportion",xlab = "Annual average by route",main=paste0(("Annual average chemical exposure by route for "),achem),verticals = TRUE,xlim = c(xlow1,xhi1))
+    lines(ecdf(as.numeric(PTC.data$Inhalation)),col="blue",verticals=TRUE)#,xlim=c(0,max(PTC.data)))
+    lines(ecdf(as.numeric(PTC.data$Dermal)),col="green",verticals=TRUE)#,xlim=c(0,max(PTC.data)))
+    legend('bottomright',legend = c("Ingestion","Inhalation","Dermal"),col = c("red","blue","green"),pch = 15)
+    cat("\n") #separating output
+    
+    PDC.data <- PD.data[PD.data$chemical==achem,] 
+    xlow2 <- 0 #lowest x axis limit
+    xhi2  <-  as.numeric(max(as.numeric(PDC.data$Ingestion),as.numeric(PDC.data$Inhalation),as.numeric(PDC.data$Dermal)))#highest x axis limit  
+    print(knitr::kable(PDC.data,caption = "table for max daily plot"))
+    cat("\n") #separating output
+    plot(ecdf(as.numeric(PDC.data$Ingestion)),col="red",ylab = "Cumulative Proportion",xlab = "Maximum daily by route",main=paste0(("Maximum daily chemical exposure by route for "),achem),verticals = TRUE,xlim=c(xlow2,xhi2))
+    lines(ecdf(as.numeric(PDC.data$Inhalation)),col="blue",verticals=TRUE)#,xlim=c(0,max(PDC.data)))
+    lines(ecdf(as.numeric(PDC.data$Dermal)),col="green",verticals=TRUE)#,xlim=c(0,max(PDC.data)))
+    legend('bottomright',legend = c("Ingestion","Inhalation","Dermal"),col = c("red","blue","green"),pch = 15)
+    cat("\n") #separating output
     
   }
   
