@@ -5,6 +5,7 @@ title: "HEM S2D Summary"
 output:
   pdf_document: default
 html_document: default
+classoption: landscape
 ---
   
   
@@ -13,7 +14,7 @@ html_document: default
 ```{r include=FALSE, echo=FALSE, results='asis'}
 #classoption: landscape
 #Copy and paste whole file into a new R markdown file
-#11/13/2017 - 11:51 pm
+#11/15/2017 - 10:51 pm
 #HEM Summary Function
 
 #libraries
@@ -336,18 +337,18 @@ read.s2d.daily = function(house_number,chemical){
 
 
 #read.prod.chem reads the s2d prod_chem files
-read.prod.chem = function(house_num,chem,puc){
+read.prod.chem = function(house_num,chem,puccc){
   prodchem <- fread(paste0(od$s2d.output.folder.location,"Prod_chem/","Prod_chem_",house_num,".csv"),stringsAsFactors = FALSE, na.strings = c("","NA"))
-  if (chem=="NA"&&puc=="NA"){
+  if (chem=="NA"&&puccc=="NA"){
     return(prodchem)
-  }else if (chem=="NA"&&!(puc=="NA")){
-    prodchem <- prodchem[prodchem$puc==puc]
+  }else if (chem=="NA"&&!(puccc=="NA")){
+    prodchem <- prodchem[prodchem$puc==puccc]
     return(prodchem)
-  }else if (puc=="NA"&&!(chem=="NA")){
+  }else if (puccc=="NA"&&!(chem=="NA")){
     prodchem <- prodchem[prodchem$chemical==chem]
     return(prodchem)
   }else{
-    prodchem <- prodchem[prodchem$puc==puc]
+    prodchem <- prodchem[prodchem$puc==puccc]
     prodchem <- prodchem[prodchem$chemical==chem]
     return(prodchem)
   } 
@@ -385,7 +386,7 @@ PUC.data           <- data.frame("PUC"=character(),"PUC Name"=character(),"PUC_U
 HP.data            <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=numeric(),"S_P_M"=numeric(),"E_P_F"=numeric(),"S_P_F"=numeric(),"E_P_Ch"=numeric(),"S_P_Ch"=numeric(),"E_Freq"=numeric(),"S_Freq"=numeric(),"E_Mass"=numeric(),"S_Mass"=numeric(), stringsAsFactors = FALSE)
 QA.data            <- data.frame("Info"=character(),"Primary Only"=integer(),"EVERYBODY"=integer(),stringsAsFactors = FALSE)
 HP_all.data        <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=numeric(),"A_P_M"=numeric(),"E_P_F"=numeric(),"A_P_F"=numeric(),"E_P_Ch"=numeric(),"A_P_Ch"=numeric(),"E_Freq"=numeric(),"A_Freq"=numeric(),"E_Mass"=numeric(),"A_Mass"=numeric(), stringsAsFactors = FALSE)
-PC.data            <- data.frame("PUC"=character(),"Chemical"=character(),"PUC_Prev"=numeric(),"Chem_Prev"=numeric(),"Real_min"=numeric(),"Min_wf"=numeric(),"Real_max"=numeric(),"max_wf"=numeric(),"Real_num_zero"=numeric(),"num_zeros"=numeric(),stringsAsFactors = FALSE)
+PC.data            <- data.frame("PUC"=character(),"Chemical"=character(),"num_PUC"=numeric(),"num_PUC_Chem"=numeric(),"Real_min"=numeric(),"Min_wf"=numeric(),"Real_max"=numeric(),"max_wf"=numeric(),"Real_num_zero"=numeric(),"num_zeros"=numeric(),stringsAsFactors = FALSE)
 PT.data            <- data.frame("chemical"= character(),"HH"=integer(),"Dermal"=numeric(),"Inhalation"=numeric(),"Ingestion"=numeric(),stringsAsFactors = FALSE)
 PD.data            <- data.frame("chemical"= character(),"HH"=integer(),"Dermal"=numeric(),"Inhalation"=numeric(),"Ingestion"=numeric(),stringsAsFactors = FALSE)
 
@@ -412,15 +413,24 @@ if ('Male' %in% popsub$gender && 'Female' %in% popsub$gender){
   G_P <- "F only"
 }
 #this is looking at genders of everyone
+gender_id_M <- 0 
+gender_id_F <- 0
+gender_id_MF <- 0
 for (i in 1:length(popsub$genders)){
   if (grepl("M",popsub$genders[i]) && grepl("F",popsub$genders[i])){
-    G_E <- "M and F"
+    gender_id_MF <- gender_id_MF + 1
+    
   }else if (grepl("M",popsub$genders[i])&&!grepl("F",popsub$genders[i])){
-    G_E <- "M only"
+    gender_id_M <- gender_id_M + 1
+    #
   }else if (grepl("F",popsub$genders[i])&&!grepl("M",popsub$genders[i])){
-    G_E <- "F only"
+    gender_id_F <- gender_id_F + 1
+    #
   }
 }
+if (gender_id_MF>0){G_E <- "M and F"}
+if (gender_id_MF==0 && gender_id_M==0 && gender_id_F>0) {G_E <- "F only"}
+if (gender_id_MF==0 && gender_id_F==0 && gender_id_M>0) {G_E <- "M only"}
 
 
 #Household summary, PUC summary and Habits and Practices data tables:
@@ -653,43 +663,45 @@ for (f in 1:length(prod_files)){
 }
 
 for (PUC in unlist(cf$puc.list)){
-  HH_u_PUC <- 0 #counter for primaries that use this PUC
   
-  
-  for (n in relevHHs){
+  for (chemicalll in unlist(cf$chem.list)){
     
-    pd <- popsub[popsub$house==n]
-    pp <- list.persons(pd)
+    cnttpuc <- 0 #counter for files that contain this puc
+    HH_u_PUC <- 0 #counter for primaries that use this PUC
     
-    abm <- read.diary(cf$diary.prefix,cf$run.name,n,pp) #read data in this household
-    prim <- abm[abm$primary==1]
-    
-    if (is.element(PUC,prim$source.id)){
-      HH_u_PUC <- HH_u_PUC+1
-    }
-  }
-  
-  for (chemical in unlist(cf$chem.list)){
     HH_PUC_Chem <- 0#counter for HH in which the primary used this PUC and the PUC contained this chemical
     Max_wf <- 0 #maximum weight fraction
     Min_wf <- 1000 #minimum weight fraction
     real_Max_wf <- 0
     real_Min_wf <- 0
     num_zeros <- 0
-    cnttpuc <- 0
     cnttchem <- 0
     num_zeros_HH <- 0
+    
     for (q in relevHHs){
-      prod_f <- read.prod.chem(q,chemical,PUC)
+      prod_puc <- read.prod.chem(q,"NA",PUC)
+      if (nrow(prod_puc)>0){
+        HH_u_PUC <- HH_u_PUC + 1
+      }
+      
+      prod_f <- read.prod.chem(q,chemicalll,PUC)
       prod_f_all <- read.prod.chem(q,"NA","NA")
       
       prod_f_all_PUC <- prod_f_all[prod_f_all$puc==PUC]
       cnttpuc <- cnttpuc + nrow(prod_f_all_PUC)
       
-      prod_f_all_CHEM <- prod_f_all[prod_f_all$chemical==chemical]
+      prod_f_all_CHEM <- prod_f_all_PUC[prod_f_all_PUC$chemical==chemicalll]
       cnttchem <- cnttchem + nrow(prod_f_all_CHEM)
       
-      num_zeros_HH <- num_zeros_HH + abs(cnttchem - cnttpuc)
+      
+      
+      
+      pd <- popsub[popsub$house==q]
+      pp <- list.persons(pd)
+      
+      abm <- read.diary(cf$diary.prefix,cf$run.name,q,pp) #read data in this household
+      prim <- abm[abm$primary==1]
+      
       
       if (nrow(prod_f)>0){
         HH_PUC_Chem <- HH_PUC_Chem+1
@@ -697,30 +709,34 @@ for (PUC in unlist(cf$puc.list)){
         Max_wf <- signif(max(Max_wf,max(prod_f$mass.fraction)),2)
         Min_wf <- signif(min(Min_wf,min(prod_f$mass.fraction)),2)
       }
-      
-      
     }
     
-    compfile <- read.comp.s2d(PUC,chemical)
-    real_Max_wf <- signif(max(as.numeric(compfile$weight_fraction)),2)
-    real_Min_wf <- signif(min(as.numeric(compfile$weight_fraction)),2)
+    num_zeros_HH <- num_zeros_HH + abs(cnttchem - cnttpuc)
+    
+    
+    compfile <- read.comp.s2d(PUC,chemicalll)
+    real_Max_wf <- signif(max(as.numeric(compfile$weight_fraction),na.rm = TRUE),2)
+    real_Min_wf <- signif(min(as.numeric(compfile$weight_fraction),na.rm = TRUE),2)
     
     compfile_all <- read.comp.s2d("NA","NA")
     compfile_all_f <- compfile_all[compfile_all$formulation_id==0]
     
-    compfile_f_puc <- (compfile_all_f[compfile_all_f$source.id==PUC])
-    cntPUC <- nrow(compfile_f_puc)
+    compfile_all_f_puc <- (compfile_all_f[compfile_all_f$source.id==PUC])
+    cntPUC <- nrow(compfile_all_f_puc)
     
-    compfile_f_chem <-(compfile_all_f[compfile_all_f$DTXSID==chemical])
-    cntChem <- nrow(compfile_f_chem)
+    compfile_all_f_puc_chem <-(compfile_all_f_puc[compfile_all_f_puc$DTXSID==chemicalll])
+    cntChem <- nrow(compfile_all_f_puc_chem)
     
-    num_zeros <- abs(cntPUC - cntChem)
+    num_zeros <- as.numeric((cntPUC - cntChem))
     
     
-    if (HH_PUC_Chem==0){
-      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemical,HH_u_PUC,HH_PUC_Chem,0,0,0,0,0,0)
-    }else{
-      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemical,HH_u_PUC,HH_PUC_Chem,signif(real_Min_wf,2),Min_wf,signif(real_Max_wf,2),Max_wf,signif(num_zeros/cntPUC,2),signif(num_zeros_HH/cnttpuc,2))
+    if (cntChem==0){
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),0,0,0,0,signif(num_zeros,2),signif(num_zeros_HH))
+    }else if (HH_PUC_Chem==0&&!(cntChem==0)){
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),signif(real_Min_wf,2),0,signif(real_Max_wf,2),0,signif(num_zeros,2),signif(num_zeros_HH))
+    }
+    else{
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),signif(real_Min_wf,2),Min_wf,signif(real_Max_wf,2),Max_wf,signif(num_zeros,2),signif(num_zeros_HH))
     }
   }
   
@@ -735,7 +751,7 @@ for (PUC in unlist(cf$puc.list)){
 
 #write data frames to file
 #HH info
-print(knitr::kable(HH.data,caption = "Table 1: Summary of Simulated Population"))
+print(knitr::kable((HH.data),caption = "Table 1: Summary of Simulated Population"))
 ```
 
 
@@ -743,7 +759,7 @@ print(knitr::kable(HH.data,caption = "Table 1: Summary of Simulated Population")
 
 #chem info
 
-print(knitr::kable(chem.data,caption = "Table 2: Chemical summary"))
+print(knitr::kable(chem.data,caption = "Table 2: Chemical Summary"))
 ```
 
 
@@ -751,22 +767,28 @@ print(knitr::kable(chem.data,caption = "Table 2: Chemical summary"))
 ```{r echo=FALSE, results='asis'}
 
 #PUC info
-pander(PUC.data,caption = "Table 3: PUC summary")
+pander(PUC.data,caption = "Table 3: PUC Summary")
 ```
 
 
 
 ```{r echo=FALSE, results='asis'}
+#panderOptions('table.split.cells',10)
+#options(width=12)
 #options(scipen=999)
-
-pander(HP.data,caption = "Table 4: Habits & Practices Summary (Households in run)")
-cat("\n\n\\pagebreak\n") #separating output
+#HP.data <- t(HP.data)
+#colnames(HP.data) <- NULL 
+print(knitr::kable(HP.data,caption = "Table 4: Habits & Practices Summary (households in run)"))
+#pander((HP.data),caption = "Table 4: Habits & Practices Summary (Households in run)")
+#cat("\n\n\\pagebreak\n") #separating output
 ```
 
 
 ```{r echo=FALSE, results='asis'}
 
-pander(PC.data,caption = "Table 5: Prod Chem table")
+print(knitr::kable(PC.data,caption = "Table 5: Prod Chem table"))
+#cat("\\newpage")
+#pander(PC.data,caption = "Table 5: Prod Chem Summary")
 ```
 
 
@@ -864,7 +886,7 @@ if (od$run.all.households=="yes"){
 
 
 ##Optional Summary Tables
-```{r echo=FALSE, results='asis'}
+```{r echo=FALSE, results='asis', fig.align="center"}
 tab <- 5 #count for table number
 
 #Optional data start
@@ -973,65 +995,69 @@ for (a in 1:length(unlist(cf$chem.list))){
     
     
     
-    if (achem%in%chem_annual$dtxsid){#counting the number of households that used this chemical
-      HH_c_use<-HH_c_use+1
+    if ((achem%in%chem_annual$dtxsid)){#counting the number of households that used this chemical
+      achem_annual <- chem_annual[chem_annual$dtxsid==achem]
+      if (achem_annual$total.used > 0){
+        HH_c_use<-HH_c_use+1
+      }
     }     
+    
+    house.daily <- read.s2d.daily(p,achem)
     
     if (achem%in%unique(chem_annual$dtxsid)){
       chem_annual <- read.s2d.annual(p,achem)
       
-      
       #total absorbed dose
       all_tot_ad <- signif((all_tot_ad + chem_annual$dir.derm.abs + chem_annual$dir.inhal.abs + chem_annual$dir.ingest.abs + chem_annual$ind.derm.abs + chem_annual$ind.inhal.abs + chem_annual$ind.ingest.abs),2)
-      max_tot_ad <- signif((max_tot_ad + chem_annual$dir.derm.max + chem_annual$dir.inhal.max + chem_annual$ind.derm.max + chem_annual$ind.inhal.max),2)
+      max_tot_ad <- signif((max_tot_ad + max(house.daily$dir.derm.abs) + max(house.daily$dir.inhal.abs) + max(house.daily$dir.ingest.abs) + max(house.daily$ind.derm.abs) + max(house.daily$ind.inhal.abs) + max(house.daily$ind.ingest.abs)),2)
       
       #dermal absorbed dose total
       all_der_tot <- signif((all_der_tot + chem_annual$dir.derm.abs + chem_annual$ind.derm.abs),2)
-      max_der_tot <- signif((max_der_tot + chem_annual$dir.derm.max + chem_annual$ind.derm.max),2)
+      max_der_tot <- signif((max_der_tot + max(house.daily$dir.derm.abs) + max(house.daily$ind.derm.abs)),2)
       
       #dermal absorbed dorse direct
       all_der_dir <- signif((all_der_dir + chem_annual$dir.derm.abs),2)
-      max_der_dir <- signif((max_der_dir + chem_annual$dir.derm.max),2)
+      max_der_dir <- signif((max_der_dir + max(house.daily$dir.derm.abs)),2)
       
       #dermal absorbed dose indirect
       all_der_ind <- signif((all_der_ind + chem_annual$ind.derm.abs),2)
-      max_der_ind <- signif((max_der_ind + chem_annual$ind.derm.max),2)
+      max_der_ind <- signif((max_der_ind + max(house.daily$ind.derm.abs)),2)
       
       #inhalation absorbed dose total
       all_inh_tot <- signif((all_inh_tot + chem_annual$dir.inhal.abs + chem_annual$ind.inhal.abs),2)
-      max_inh_tot <- signif((max_inh_tot + chem_annual$dir.inhal.max + chem_annual$ind.inhal.max),2)
+      max_inh_tot <- signif((max_inh_tot + max(house.daily$dir.inhal.abs) + max(house.daily$ind.inhal.abs)),2)
       
       #inhalation absorbed dose direct
       all_inh_dir <- signif((all_inh_dir + chem_annual$dir.inhal.abs),2)
-      max_inh_dir <- signif((max_inh_dir + chem_annual$dir.inhal.max),2)
+      max_inh_dir <- signif((max_inh_dir + max(house.daily$dir.inhal.abs)),2)
       
       #inhalation absorbed dose indirect
       all_inh_ind <- signif((all_inh_ind + chem_annual$ind.inhal.abs),2)
-      max_inh_ind <- signif((max_inh_ind + chem_annual$ind.inhal.max),2)
+      max_inh_ind <- signif((max_inh_ind + max(house.daily$ind.inhal.abs)),2)
       
       #ingestion absorbed dose total
       all_ing_tot <- signif((all_ing_tot + chem_annual$dir.ingest.abs + chem_annual$ind.ingest.abs),2)
-      max_ing_tot <- "NA"
+      max_ing_tot <- signif((max_ing_tot + max(house.daily$dir.ingest.abs + max(house.daily$ind.ingest.abs))),2)
       
       #ingestion absorbed dose direct
       all_ing_dir <- signif((all_ing_dir + chem_annual$dir.ingest.abs),2)
-      max_ing_dir <- "NA"
+      max_ing_dir <- signif((max_ing_dir + max(house.daily$dir.ingest.abs)),2)
       
       #ingestion absorbed dose indirect
       all_ing_ind <- signif((all_ing_ind + chem_annual$ind.ingest.abs),2)
-      max_ing_ind <- "NA"
+      max_ing_ind <- signif((max_ing_ind + max(house.daily$ind.ingest.abs)),2)
       
       #mass down the drain
       all_mass_drain <- signif((all_mass_drain + chem_annual$drain),2)
-      max_mass_drain <- "NA"
+      max_mass_drain <- signif((max_mass_drain + max(house.daily$drain)),2)
       
       #mass out the window
       all_mass_window <- signif((all_mass_window + chem_annual$out.air),2)
-      max_mass_window <- "NA"
+      max_mass_window <- signif((max_mass_window + max(house.daily$out.air)),2)
       
       #mass in solid waste
       all_mass_waste <- signif((all_mass_waste + chem_annual$waste),2)
-      max_mass_waste <- "NA"
+      max_mass_waste <- signif((max_mass_waste + max(house.daily$waste)),2)
       
     }
     #write to annual plot data frame
@@ -1075,12 +1101,12 @@ for (a in 1:length(unlist(cf$chem.list))){
   OPT.data[nrow(OPT.data)+1, ] <- c("Inhalation.abs.dose.tot",od$age.groups.of.interest,all_inh_tot/HHno,all_inh_tot/HH_c_use,max_inh_tot/HHno)
   OPT.data[nrow(OPT.data)+1, ] <- c("Inhalation.abs.dose.dir",od$age.groups.of.interest,all_inh_dir/HHno,all_inh_dir/HH_c_use,max_inh_dir/HHno)
   OPT.data[nrow(OPT.data)+1, ] <- c("Inhalation.abs.dose.ind",od$age.groups.of.interest,all_inh_ind/HHno,all_inh_ind/HH_c_use,max_inh_ind/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.tot",od$age.groups.of.interest,all_ing_tot/HHno,all_ing_tot/HH_c_use,max_ing_tot)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.dir",od$age.groups.of.interest,all_ing_dir/HHno,all_ing_dir/HH_c_use,max_ing_dir)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.ind",od$age.groups.of.interest,all_ing_ind/HHno,all_ing_ind/HH_c_use,max_ing_ind)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.down.drain",od$age.groups.of.interest,all_mass_drain/HHno,all_mass_drain/HH_c_use,max_mass_drain)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.out.window",od$age.groups.of.interest,all_mass_window/HHno,all_mass_window/HH_c_use,max_mass_window)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.solid.waste",od$age.groups.of.interest,all_mass_waste/HHno,all_mass_waste/HH_c_use,max_mass_waste)
+  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.tot",od$age.groups.of.interest,all_ing_tot/HHno,all_ing_tot/HH_c_use,max_ing_tot/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.dir",od$age.groups.of.interest,all_ing_dir/HHno,all_ing_dir/HH_c_use,max_ing_dir/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.ind",od$age.groups.of.interest,all_ing_ind/HHno,all_ing_ind/HH_c_use,max_ing_ind/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.down.drain",od$age.groups.of.interest,all_mass_drain/HHno,all_mass_drain/HH_c_use,max_mass_drain/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.out.window",od$age.groups.of.interest,all_mass_window/HHno,all_mass_window/HH_c_use,max_mass_window/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.solid.waste",od$age.groups.of.interest,all_mass_waste/HHno,all_mass_waste/HH_c_use,max_mass_waste/HHno)
   
   
   OPT.data <- as.data.table(OPT.data)
@@ -1197,7 +1223,7 @@ for (a in 1:length(unlist(cf$chem.list))){
       lines(ecdf(as.numeric(PDC.data$Inhalation)),col="blue",verticals=TRUE)#,xlim=c(0,max(PDC.data)))
       lines(ecdf(as.numeric(PDC.data$Dermal)),col="green",verticals=TRUE)#,xlim=c(0,max(PDC.data)))
       legend('bottomright',legend = c("Ingestion","Inhalation","Dermal"),col = c("red","blue","green"),pch = 15)
-      cat("\n") #separating output
+      cat("\\newpage") #separating output
     }
   }
   
