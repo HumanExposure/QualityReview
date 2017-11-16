@@ -14,7 +14,7 @@ classoption: landscape
 ```{r include=FALSE, echo=FALSE, results='asis'}
 #classoption: landscape
 #Copy and paste whole file into a new R markdown file
-#11/15/2017 - 10:51 pm
+#11/16/2017 - 12:36 pm
 #HEM Summary Function
 
 #libraries
@@ -386,7 +386,7 @@ PUC.data           <- data.frame("PUC"=character(),"PUC Name"=character(),"PUC_U
 HP.data            <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=numeric(),"S_P_M"=numeric(),"E_P_F"=numeric(),"S_P_F"=numeric(),"E_P_Ch"=numeric(),"S_P_Ch"=numeric(),"E_Freq"=numeric(),"S_Freq"=numeric(),"E_Mass"=numeric(),"S_Mass"=numeric(), stringsAsFactors = FALSE)
 QA.data            <- data.frame("Info"=character(),"Primary Only"=integer(),"EVERYBODY"=integer(),stringsAsFactors = FALSE)
 HP_all.data        <- data.frame("PUC"=character(),"Description"=character(),"E_P_M"=numeric(),"A_P_M"=numeric(),"E_P_F"=numeric(),"A_P_F"=numeric(),"E_P_Ch"=numeric(),"A_P_Ch"=numeric(),"E_Freq"=numeric(),"A_Freq"=numeric(),"E_Mass"=numeric(),"A_Mass"=numeric(), stringsAsFactors = FALSE)
-PC.data            <- data.frame("PUC"=character(),"Chemical"=character(),"num_PUC"=numeric(),"num_PUC_Chem"=numeric(),"Real_min"=numeric(),"Min_wf"=numeric(),"Real_max"=numeric(),"max_wf"=numeric(),"Real_num_zero"=numeric(),"num_zeros"=numeric(),stringsAsFactors = FALSE)
+PC.data            <- data.frame("PUC"=character(),"Chemical"=character(),"num_PUC"=numeric(),"num_PUC_Chem"=numeric(),"Real_min"=numeric(),"Min_wf"=numeric(),"Real_max"=numeric(),"max_wf"=numeric(),"Real_frac_zero"=numeric(),"frac_zeros"=numeric(),stringsAsFactors = FALSE)
 PT.data            <- data.frame("chemical"= character(),"HH"=integer(),"Dermal"=numeric(),"Inhalation"=numeric(),"Ingestion"=numeric(),stringsAsFactors = FALSE)
 PD.data            <- data.frame("chemical"= character(),"HH"=integer(),"Dermal"=numeric(),"Inhalation"=numeric(),"Ingestion"=numeric(),stringsAsFactors = FALSE)
 
@@ -767,7 +767,7 @@ print(knitr::kable(chem.data,caption = "Table 2: Chemical Summary"))
 ```{r echo=FALSE, results='asis'}
 
 #PUC info
-pander(PUC.data,caption = "Table 3: PUC Summary")
+print(knitr::kable(PUC.data,caption = "Table 3: PUC Summary"))
 ```
 
 
@@ -1206,7 +1206,7 @@ for (a in 1:length(unlist(cf$chem.list))){
       xlow1 <- 0 #lowest x axis limit
       xhi1  <-  as.numeric(max(as.numeric(PTC.data$Ingestion),as.numeric(PTC.data$Inhalation),as.numeric(PTC.data$Dermal)))#highest x axis limit  
       #curve(pnorm(OPT_f_out.data$AvgMean.AllPop))
-      print(knitr::kable(PTC.data,caption = "QA table for annual exp plot"))
+      #print(knitr::kable(PTC.data,caption = "QA table for annual exp plot"))
       cat("\n") #separating output
       plot(ecdf(as.numeric(PTC.data$Ingestion)),col="red",ylab = "Cumulative Proportion",xlab = "Annual average by route",main=paste0(("Annual average chemical exposure by route for "),chempp$chemical),verticals = TRUE,xlim = c(xlow1,xhi1))
       lines(ecdf(as.numeric(PTC.data$Inhalation)),col="blue",verticals=TRUE)#,xlim=c(0,max(PTC.data)))
@@ -1217,7 +1217,7 @@ for (a in 1:length(unlist(cf$chem.list))){
       PDC.data <- PD.data[PD.data$chemical==achem,] 
       xlow2 <- 0 #lowest x axis limit
       xhi2  <-  as.numeric(max(as.numeric(PDC.data$Ingestion),as.numeric(PDC.data$Inhalation),as.numeric(PDC.data$Dermal)))#highest x axis limit  
-      print(knitr::kable(PDC.data,caption = "QA table for max daily plot"))
+      #print(knitr::kable(PDC.data,caption = "QA table for max daily plot"))
       cat("\n") #separating output
       plot(ecdf(as.numeric(PDC.data$Ingestion)),col="red",ylab = "Cumulative Proportion",xlab = "Maximum daily by route",main=paste0(("Maximum daily chemical exposure by route for "),chempp$chemical),verticals = TRUE,xlim=c(xlow2,xhi2))
       lines(ecdf(as.numeric(PDC.data$Inhalation)),col="blue",verticals=TRUE)#,xlim=c(0,max(PDC.data)))
