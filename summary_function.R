@@ -731,12 +731,12 @@ for (PUC in unlist(cf$puc.list)){
     
     
     if (cntChem==0){
-      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),0,0,0,0,signif(num_zeros,2),signif(num_zeros_HH))
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),0,0,0,0,signif(num_zeros/cntPUC,2),signif(num_zeros_HH/cnttpuc))
     }else if (HH_PUC_Chem==0&&!(cntChem==0)){
-      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),signif(real_Min_wf,2),0,signif(real_Max_wf,2),0,signif(num_zeros,2),signif(num_zeros_HH))
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),signif(real_Min_wf,2),0,signif(real_Max_wf,2),0,signif(num_zeros/cntPUC,2),signif(num_zeros_HH/cnttpuc))
     }
     else{
-      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),signif(real_Min_wf,2),Min_wf,signif(real_Max_wf,2),Max_wf,signif(num_zeros,2),signif(num_zeros_HH))
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),signif(real_Min_wf,2),Min_wf,signif(real_Max_wf,2),Max_wf,signif(num_zeros/cntPUC,2),signif(num_zeros_HH/cnttpuc))
     }
   }
   
@@ -1094,19 +1094,19 @@ for (a in 1:length(unlist(cf$chem.list))){
   }
   
   #Store data in data frame
-  OPT.data[nrow(OPT.data)+1, ] <- c("Total.abs.dose",od$age.groups.of.interest,all_tot_ad/HHno,all_tot_ad/HH_c_use,max_tot_ad/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Dermal.abs.dose.tot",od$age.groups.of.interest,all_der_tot/HHno,all_der_tot/HH_c_use,max_der_tot/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Dermal.abs.dose.dir",od$age.groups.of.interest,all_der_dir/HHno,all_der_dir/HH_c_use,max_der_dir/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Dermal.abs.dose.ind",od$age.groups.of.interest,all_der_ind/HHno,all_der_ind/HH_c_use,max_der_ind/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Inhalation.abs.dose.tot",od$age.groups.of.interest,all_inh_tot/HHno,all_inh_tot/HH_c_use,max_inh_tot/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Inhalation.abs.dose.dir",od$age.groups.of.interest,all_inh_dir/HHno,all_inh_dir/HH_c_use,max_inh_dir/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Inhalation.abs.dose.ind",od$age.groups.of.interest,all_inh_ind/HHno,all_inh_ind/HH_c_use,max_inh_ind/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.tot",od$age.groups.of.interest,all_ing_tot/HHno,all_ing_tot/HH_c_use,max_ing_tot/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.dir",od$age.groups.of.interest,all_ing_dir/HHno,all_ing_dir/HH_c_use,max_ing_dir/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.ind",od$age.groups.of.interest,all_ing_ind/HHno,all_ing_ind/HH_c_use,max_ing_ind/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.down.drain",od$age.groups.of.interest,all_mass_drain/HHno,all_mass_drain/HH_c_use,max_mass_drain/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.out.window",od$age.groups.of.interest,all_mass_window/HHno,all_mass_window/HH_c_use,max_mass_window/HHno)
-  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.solid.waste",od$age.groups.of.interest,all_mass_waste/HHno,all_mass_waste/HH_c_use,max_mass_waste/HHno)
+  OPT.data[nrow(OPT.data)+1, ] <- c("Total.abs.dose",od$age.groups.of.interest,signif(all_tot_ad/HHno,2),signif(all_tot_ad/HH_c_use,2),signif(max_tot_ad/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Dermal.abs.dose.tot",od$age.groups.of.interest,signif(all_der_tot/HHno,2),signif(all_der_tot/HH_c_use,2),signif(max_der_tot/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Dermal.abs.dose.dir",od$age.groups.of.interest,signif(all_der_dir/HHno,2),signif(all_der_dir/HH_c_use,2),signif(max_der_dir/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Dermal.abs.dose.ind",od$age.groups.of.interest,signif(all_der_ind/HHno,2),signif(all_der_ind/HH_c_use,2),signif(max_der_ind/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Inhalation.abs.dose.tot",od$age.groups.of.interest,signif(all_inh_tot/HHno,2),signif(all_inh_tot/HH_c_use,2),signif(max_inh_tot/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Inhalation.abs.dose.dir",od$age.groups.of.interest,signif(all_inh_dir/HHno,2),signif(all_inh_dir/HH_c_use,2),signif(max_inh_dir/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Inhalation.abs.dose.ind",od$age.groups.of.interest,signif(all_inh_ind/HHno,2),signif(all_inh_ind/HH_c_use,2),signif(max_inh_ind/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.tot",od$age.groups.of.interest,signif(all_ing_tot/HHno,2),signif(all_ing_tot/HH_c_use,2),signif(max_ing_tot/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.dir",od$age.groups.of.interest,signif(all_ing_dir/HHno,2),signif(all_ing_dir/HH_c_use,2),signif(max_ing_dir/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Ingestion.abs.dose.ind",od$age.groups.of.interest,signif(all_ing_ind/HHno,2),signif(all_ing_ind/HH_c_use,2),signif(max_ing_ind/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.down.drain",od$age.groups.of.interest,signif(all_mass_drain/HHno,2),signif(all_mass_drain/HH_c_use,2),signif(max_mass_drain/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.out.window",od$age.groups.of.interest,signif(all_mass_window/HHno,2),signif(all_mass_window/HH_c_use,2),signif(max_mass_window/HHno,2))
+  OPT.data[nrow(OPT.data)+1, ] <- c("Mass.solid.waste",od$age.groups.of.interest,signif(all_mass_waste/HHno,2),signif(all_mass_waste/HH_c_use,2),signif(max_mass_waste/HHno,2))
   
   
   OPT.data <- as.data.table(OPT.data)
