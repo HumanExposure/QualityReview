@@ -14,7 +14,7 @@ classoption: landscape
 ```{r include=FALSE, echo=FALSE, results='asis'}
 #classoption: landscape
 #Copy and paste whole file into a new R markdown file
-#11/16/2017 - 12:36 pm
+#12/08/2017 -  11:22pm
 #HEM Summary Function
 
 #libraries
@@ -34,14 +34,14 @@ library(pander)
 library(kableExtra)
 
 #setting working directory
-wd <- "C:/Users/39492/Desktop/temp HEM testing folder/update to common__HEM summary function" 
+wd <- "C:/Users/39492/Desktop/Testing_SumFxn" 
 setwd(wd)
 
 #name of control file for optional output
 optional.file="ocf.txt"
 
 #name of control file for S2D run
-control.file="airfreshener_OPP.txt"
+control.file="test0.txt"
 
 #panderOptions('table.continues','')
 #panderOptions('table.caption.prefix', 'Table:')
@@ -632,7 +632,7 @@ for (a in 1:length(unlist(cf$puc.list))){#for each PUC included
 }
 
 #write household data to data frame
-HH.data[nrow(HH.data)+1, ] <- c("No. of households",cf$last.house-cf$first.house+1,"NA")
+HH.data[nrow(HH.data)+1, ] <- c("No. of households",cf$last.house-cf$first.house+1,paste0(cf$first.house,"-",cf$last.house))
 HH.data[nrow(HH.data)+1, ] <- c("Min age",min_age_P,min_age_E)
 HH.data[nrow(HH.data)+1, ] <- c("Max age",max_age_P,max_age_E)
 HH.data[nrow(HH.data)+1, ] <- c("Max age - Min age",max_age_P-min_age_P,max_age_E-min_age_E)
@@ -730,10 +730,17 @@ for (PUC in unlist(cf$puc.list)){
     num_zeros <- as.numeric((cntPUC - cntChem))
     
     
-    if (cntChem==0){
+    if (cntChem==0&&!(cnttpuc==0)){
       PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),0,0,0,0,signif(num_zeros/cntPUC,2),signif(num_zeros_HH/cnttpuc))
-    }else if (HH_PUC_Chem==0&&!(cntChem==0)){
+    }
+    else if (cntChem==0&&(cnttpuc==0)){
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),0,0,0,0,signif(num_zeros/cntPUC,2),1)
+    }
+    else if (HH_PUC_Chem==0&&!(cntChem==0)&&!(cnttpuc==0)){
       PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),signif(real_Min_wf,2),0,signif(real_Max_wf,2),0,signif(num_zeros/cntPUC,2),signif(num_zeros_HH/cnttpuc))
+    }
+    else if (HH_PUC_Chem==0&&!(cntChem==0)&&(cnttpuc==0)){
+      PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),signif(real_Min_wf,2),0,signif(real_Max_wf,2),0,signif(num_zeros/cntPUC,2),1)
     }
     else{
       PC.data[nrow(PC.data)+1, ] <- c(PUC,chemicalll,signif(HH_u_PUC,2),signif(HH_PUC_Chem,2),signif(real_Min_wf,2),Min_wf,signif(real_Max_wf,2),Max_wf,signif(num_zeros/cntPUC,2),signif(num_zeros_HH/cnttpuc))
@@ -1093,6 +1100,8 @@ for (a in 1:length(unlist(cf$chem.list))){
     
   }
   
+  if (HH_c_use==0){ HH_c_use= 1}
+  
   #Store data in data frame
   OPT.data[nrow(OPT.data)+1, ] <- c("Total.abs.dose",od$age.groups.of.interest,signif(all_tot_ad/HHno,2),signif(all_tot_ad/HH_c_use,2),signif(max_tot_ad/HHno,2))
   OPT.data[nrow(OPT.data)+1, ] <- c("Dermal.abs.dose.tot",od$age.groups.of.interest,signif(all_der_tot/HHno,2),signif(all_der_tot/HH_c_use,2),signif(max_der_tot/HHno,2))
@@ -1107,6 +1116,8 @@ for (a in 1:length(unlist(cf$chem.list))){
   OPT.data[nrow(OPT.data)+1, ] <- c("Mass.down.drain",od$age.groups.of.interest,signif(all_mass_drain/HHno,2),signif(all_mass_drain/HH_c_use,2),signif(max_mass_drain/HHno,2))
   OPT.data[nrow(OPT.data)+1, ] <- c("Mass.out.window",od$age.groups.of.interest,signif(all_mass_window/HHno,2),signif(all_mass_window/HH_c_use,2),signif(max_mass_window/HHno,2))
   OPT.data[nrow(OPT.data)+1, ] <- c("Mass.solid.waste",od$age.groups.of.interest,signif(all_mass_waste/HHno,2),signif(all_mass_waste/HH_c_use,2),signif(max_mass_waste/HHno,2))
+  
+  
   
   
   OPT.data <- as.data.table(OPT.data)
@@ -1206,7 +1217,7 @@ for (a in 1:length(unlist(cf$chem.list))){
       xlow1 <- 0 #lowest x axis limit
       xhi1  <-  as.numeric(max(as.numeric(PTC.data$Ingestion),as.numeric(PTC.data$Inhalation),as.numeric(PTC.data$Dermal)))#highest x axis limit  
       #curve(pnorm(OPT_f_out.data$AvgMean.AllPop))
-      #print(knitr::kable(PTC.data,caption = "QA table for annual exp plot"))
+      print(knitr::kable(PTC.data,caption = "QA table for annual exp plot"))
       cat("\n") #separating output
       plot(ecdf(as.numeric(PTC.data$Ingestion)),col="red",ylab = "Cumulative Proportion",xlab = "Annual average by route",main=paste0(("Annual average chemical exposure by route for "),chempp$chemical),verticals = TRUE,xlim = c(xlow1,xhi1))
       lines(ecdf(as.numeric(PTC.data$Inhalation)),col="blue",verticals=TRUE)#,xlim=c(0,max(PTC.data)))
@@ -1217,7 +1228,7 @@ for (a in 1:length(unlist(cf$chem.list))){
       PDC.data <- PD.data[PD.data$chemical==achem,] 
       xlow2 <- 0 #lowest x axis limit
       xhi2  <-  as.numeric(max(as.numeric(PDC.data$Ingestion),as.numeric(PDC.data$Inhalation),as.numeric(PDC.data$Dermal)))#highest x axis limit  
-      #print(knitr::kable(PDC.data,caption = "QA table for max daily plot"))
+      print(knitr::kable(PDC.data,caption = "QA table for max daily plot"))
       cat("\n") #separating output
       plot(ecdf(as.numeric(PDC.data$Ingestion)),col="red",ylab = "Cumulative Proportion",xlab = "Maximum daily by route",main=paste0(("Maximum daily chemical exposure by route for "),chempp$chemical),verticals = TRUE,xlim=c(xlow2,xhi2))
       lines(ecdf(as.numeric(PDC.data$Inhalation)),col="blue",verticals=TRUE)#,xlim=c(0,max(PDC.data)))
